@@ -61,23 +61,42 @@ public:
 	}
 
 	// - CGCADhaus4.house4 command (do not rename)
-	static void CGCADhaus4house4(void)
+	static void CGCADhaus4house4()
 	{
-		// Add your code for command CGCADhaus4.house4 here
+		// general: x = length, y = width, z = height
+
+		AcGePoint3d userBasePoint;
+		ads_point length;			//ads_point's are 3 dimensional double arrays
+		ads_point width;
+		ads_point height;
+		ads_point ridgeHeight;
+
+		//user input
+		acedGetPoint(NULL, L"\r\nStartpunkt eingeben: ", asDblArray(userBasePoint)); 
+		acedGetPoint(NULL, L"\r\nLänge eingeben: ", length);
+		acedGetPoint(NULL, L"\r\nBreite eingeben: ", width);
+		acedGetPoint(NULL, L"\r\nHöhe eingeben: ", height); 
+		acedGetPoint(NULL, L"\r\nFirsthöhe eingeben: ", ridgeHeight); 
+
+		//initialize main values 
+		length[1] += userBasePoint.x;
+		width[1] += userBasePoint.y;
+		height[1] += userBasePoint.z;
+		ridgeHeight[1] += height[1];
 		
 		//initialize points
-		AcGePoint3d groundPoint1(0.0, 0.0, 0.0);
-		AcGePoint3d groundPoint2(10.0, 0.0, 0.0);
-		AcGePoint3d groundPoint3(10.0, 10.0, 0.0);
-		AcGePoint3d groundPoint4(0.0, 10.0, 0.0);
+		AcGePoint3d groundPoint1 = userBasePoint;
+		AcGePoint3d groundPoint2(length[1], userBasePoint.y, userBasePoint.z);
+		AcGePoint3d groundPoint3(length[1], width[1], userBasePoint.z);
+		AcGePoint3d groundPoint4(userBasePoint.x, width[1], userBasePoint.z);
 			
-		AcGePoint3d ceilingPoint1(0.0, 0.0, 10.0);
-		AcGePoint3d ceilingPoint2(10.0, 0.0, 10.0);
-		AcGePoint3d ceilingPoint3(10.0, 10.0, 10.0);
-		AcGePoint3d ceilingPoint4(0.0, 10.0, 10.0);
+		AcGePoint3d ceilingPoint1(userBasePoint.x, userBasePoint.y, height[1]);
+		AcGePoint3d ceilingPoint2(length[1], userBasePoint.y, height[1]);
+		AcGePoint3d ceilingPoint3(length[1], width[1], height[1]);
+		AcGePoint3d ceilingPoint4(userBasePoint.x, width[1], height[1]);
 
-		AcGePoint3d roofPoint1(5.0, 0.0, 15.0);
-		AcGePoint3d roofPoint2(5.0, 10.0, 15.0);
+		AcGePoint3d roofPoint1((userBasePoint.x+length[1])/2, userBasePoint.y, ridgeHeight[1]);
+		AcGePoint3d roofPoint2((userBasePoint.x+length[1])/2, width[1], ridgeHeight[1]);
 
 
 		//initialize 3dFaces
