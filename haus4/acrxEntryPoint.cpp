@@ -64,19 +64,21 @@ public:
 	static void CGCADhaus4house4(void)
 	{
 		// Add your code for command CGCADhaus4.house4 here
-		//ground
+		
+		//initialize points
 		AcGePoint3d groundPoint1(0.0, 0.0, 0.0);
 		AcGePoint3d groundPoint2(10.0, 0.0, 0.0);
 		AcGePoint3d groundPoint3(10.0, 10.0, 0.0);
 		AcGePoint3d groundPoint4(0.0, 10.0, 0.0);
-		//ceiling	
+			
 		AcGePoint3d ceilingPoint1(0.0, 0.0, 10.0);
 		AcGePoint3d ceilingPoint2(10.0, 0.0, 10.0);
 		AcGePoint3d ceilingPoint3(10.0, 10.0, 10.0);
 		AcGePoint3d ceilingPoint4(0.0, 10.0, 10.0);
-		//roof
+
 		AcGePoint3d roofPoint1(5.0, 0.0, 15.0);
 		AcGePoint3d roofPoint2(5.0, 10.0, 15.0);
+
 
 		//initialize 3dFaces
 		AcDbFace* ground = new AcDbFace(groundPoint1, groundPoint2, groundPoint3, groundPoint4, TRUE, TRUE, TRUE, TRUE);
@@ -88,13 +90,19 @@ public:
 		AcDbFace* wall4 = new AcDbFace(groundPoint4, groundPoint1, ceilingPoint1, ceilingPoint4, TRUE, TRUE, TRUE, TRUE);
 		AcDbFace* roof1 = new AcDbFace(ceilingPoint1, roofPoint1, roofPoint2, ceilingPoint4, TRUE, TRUE, TRUE, TRUE);
 		AcDbFace* roof2 = new AcDbFace(ceilingPoint2, ceilingPoint3, roofPoint2, roofPoint1, TRUE, TRUE, TRUE, TRUE);
+		
 
-		AcDbBlockTable* pBlockTable = NULL;
-
+		//database connect
 		AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
+		
+		//blocktable init
+		AcDbBlockTable* pBlockTable = NULL;
 		pDB->getSymbolTable(pBlockTable, AcDb::kForRead);
+		
+		//blocktable record init
 		AcDbBlockTableRecord* pBlockTableRecord = NULL;
 		pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
+		
 		pBlockTable->close();
 
 		pBlockTableRecord->appendAcDbEntity(ground);
@@ -106,8 +114,58 @@ public:
 		pBlockTableRecord->appendAcDbEntity(wall4);
 		pBlockTableRecord->appendAcDbEntity(roof1);
 		pBlockTableRecord->appendAcDbEntity(roof2);
-
+		
 		pBlockTableRecord->close();
+		
+
+		//layer table
+		AcDbLayerTable* pLayerTbl = NULL; 
+ 
+		// Get the LayerTable for write because we will create a new entry 
+		pDB->getSymbolTable(pLayerTbl,AcDb::kForWrite); 
+ 
+		// Check if the layer is already there 
+		if (!pLayerTbl->has(_T("haus4"))) // _T for char Unicode convert  
+		{ 
+		   // Instantiate a new object and set its properties 
+		   AcDbLayerTableRecord *pLayerTblRcd = new AcDbLayerTableRecord; 
+		   pLayerTblRcd->setName(_T("haus4")); 
+		   pLayerTblRcd->setIsFrozen(0); // layer set to THAWED 
+		   pLayerTblRcd->setIsOff(0);    // layer set to ON 
+		   pLayerTblRcd->setIsLocked(0); // layer un-locked 
+		   AcCmColor color; 
+		   color.setColorIndex(10);      // set layer color to red 
+		   pLayerTblRcd->setColor(color);
+		   // Now, add the new layer to its container 
+		   pLayerTbl->add(pLayerTblRcd); 
+ 
+		   // Close the new layer (DON'T DELETE IT) 
+		   pLayerTblRcd->close(); 
+ 
+		   // Close the container 
+		   pLayerTbl->close(); 
+		}  
+		else  
+		{ 
+		   // If our layer is already there, just close the container and continue 
+		   pLayerTbl->close(); 
+		   acutPrintf(_T("\nhaus4 already exists")); //output in the status line 
+		}
+
+
+		//set layer
+		ground->setLayer(_T("haus4"));
+		wall1->setLayer(_T("haus4"));
+		wall11->setLayer(_T("haus4"));
+		wall2->setLayer(_T("haus4"));
+		wall3->setLayer(_T("haus4"));
+		wall31->setLayer(_T("haus4"));
+		wall4->setLayer(_T("haus4"));
+		roof1->setLayer(_T("haus4"));
+		roof2->setLayer(_T("haus4"));
+
+
+		//close entities
 		ground->close();
 		wall1->close();
 		wall11->close();
