@@ -66,49 +66,55 @@ public:
 		// general: x = length, y = width, z = height
 
 		AcGePoint3d userBasePoint;
-		ads_point length;			//ads_point's are 3 dimensional double arrays
-		ads_point width;
-		ads_point height;
-		ads_point ridgeHeight;
+		ads_real* length = new ads_real();			//ads_point's are 3 dimensional double arrays
+		ads_real* width = new ads_real();
+		ads_real* height = new ads_real();
+		ads_real* ridgeHeight = new ads_real();
 
 		//user input
-		acedGetPoint(NULL, L"\r\nStartpunkt eingeben: ", asDblArray(userBasePoint)); 
-		acedGetPoint(NULL, L"\r\nLänge eingeben: ", length);
-		acedGetPoint(NULL, L"\r\nBreite eingeben: ", width);
-		acedGetPoint(NULL, L"\r\nHöhe eingeben: ", height); 
-		acedGetPoint(NULL, L"\r\nFirsthöhe eingeben: ", ridgeHeight); 
+		acedGetPoint(NULL, L"\r\nStartpunkt eingeben: ", asDblArray(userBasePoint));
+		acedGetReal(L"\r\nLänge eingeben: ", length);
+		acedGetReal(L"\r\nBreite eingeben: ", width);
+		acedGetReal(L"\r\nHöhe eingeben: ", height);
+		acedGetReal(L"\r\nFirsthöhe eingeben: ", ridgeHeight); 
 
 		//initialize main values 
-		length[1] += userBasePoint.x;
-		width[1] += userBasePoint.y;
-		height[1] += userBasePoint.z;
-		ridgeHeight[1] += height[1];
+		*length += userBasePoint.x;
+		*width += userBasePoint.y;
+		*height += userBasePoint.z;
+		if(*height <= *ridgeHeight)
+			*ridgeHeight += userBasePoint.z;
+		else
+			*ridgeHeight += *height;
 		
 		//initialize points
 		AcGePoint3d groundPoint1 = userBasePoint;
-		AcGePoint3d groundPoint2(length[1], userBasePoint.y, userBasePoint.z);
-		AcGePoint3d groundPoint3(length[1], width[1], userBasePoint.z);
-		AcGePoint3d groundPoint4(userBasePoint.x, width[1], userBasePoint.z);
+		AcGePoint3d groundPoint2(*length, userBasePoint.y, userBasePoint.z);
+		AcGePoint3d groundPoint3(*length, *width, userBasePoint.z);
+		AcGePoint3d groundPoint4(userBasePoint.x, *width, userBasePoint.z);
 			
-		AcGePoint3d ceilingPoint1(userBasePoint.x, userBasePoint.y, height[1]);
-		AcGePoint3d ceilingPoint2(length[1], userBasePoint.y, height[1]);
-		AcGePoint3d ceilingPoint3(length[1], width[1], height[1]);
-		AcGePoint3d ceilingPoint4(userBasePoint.x, width[1], height[1]);
+		AcGePoint3d ceilingPoint1(userBasePoint.x, userBasePoint.y, *height);
+		AcGePoint3d ceilingPoint2(*length, userBasePoint.y, *height);
+		AcGePoint3d ceilingPoint3(*length, *width, *height);
+		AcGePoint3d ceilingPoint4(userBasePoint.x, *width, *height);
 
-		AcGePoint3d roofPoint1((userBasePoint.x+length[1])/2, userBasePoint.y, ridgeHeight[1]);
-		AcGePoint3d roofPoint2((userBasePoint.x+length[1])/2, width[1], ridgeHeight[1]);
+		//acutPrintf(_T("\nUserPoint.y = %f, width = %f, 1/2width, %f, overall= %f"), userBasePoint.y, *width, *width/2.0, userBasePoint.y+(*width/2.0));
+
+		AcGePoint3d roofPoint1(userBasePoint.x,userBasePoint.y+((*width-userBasePoint.y)/2.0), *ridgeHeight);
+		AcGePoint3d roofPoint2(*length,userBasePoint.y+((*width-userBasePoint.y)/2.0), *ridgeHeight);
 
 
 		//initialize 3dFaces
 		AcDbFace* ground = new AcDbFace(groundPoint1, groundPoint2, groundPoint3, groundPoint4, TRUE, TRUE, TRUE, TRUE);
 		AcDbFace* wall1 = new AcDbFace(groundPoint1, groundPoint2, ceilingPoint2, ceilingPoint1, TRUE, TRUE, FALSE, TRUE);
-		AcDbFace* wall11 = new AcDbFace(ceilingPoint1, ceilingPoint2, roofPoint1, FALSE, TRUE, TRUE, FALSE);
-		AcDbFace* wall2 = new AcDbFace(groundPoint2, groundPoint3, ceilingPoint3, ceilingPoint2, TRUE, TRUE, TRUE, TRUE);
-		AcDbFace* wall3 = new AcDbFace(groundPoint3, groundPoint4, ceilingPoint4, ceilingPoint3, TRUE, TRUE, FALSE, TRUE);
-		AcDbFace* wall31 = new AcDbFace(ceilingPoint3, ceilingPoint4, roofPoint2, FALSE, TRUE, TRUE, FALSE);
-		AcDbFace* wall4 = new AcDbFace(groundPoint4, groundPoint1, ceilingPoint1, ceilingPoint4, TRUE, TRUE, TRUE, TRUE);
-		AcDbFace* roof1 = new AcDbFace(ceilingPoint1, roofPoint1, roofPoint2, ceilingPoint4, TRUE, TRUE, TRUE, TRUE);
-		AcDbFace* roof2 = new AcDbFace(ceilingPoint2, ceilingPoint3, roofPoint2, roofPoint1, TRUE, TRUE, TRUE, TRUE);
+		AcDbFace* wall11 = new AcDbFace(ceilingPoint1, roofPoint1, ceilingPoint4, TRUE, TRUE, FALSE, FALSE);
+		AcDbFace* wall2 = new AcDbFace(groundPoint2, groundPoint3, ceilingPoint3, ceilingPoint2, TRUE, TRUE, FALSE, TRUE);
+		AcDbFace* wall3 = new AcDbFace(groundPoint3, groundPoint4, ceilingPoint4, ceilingPoint3, TRUE, TRUE, TRUE, TRUE);
+		AcDbFace* wall31 = new AcDbFace(ceilingPoint2, ceilingPoint3, roofPoint2, FALSE, TRUE, TRUE, FALSE);
+		AcDbFace* wall4 = new AcDbFace(groundPoint4, groundPoint1, ceilingPoint1, ceilingPoint4, TRUE, TRUE, FALSE, TRUE);
+		
+		AcDbFace* roof1 = new AcDbFace(ceilingPoint1, ceilingPoint2, roofPoint2, roofPoint1, TRUE, TRUE, TRUE, TRUE);
+		AcDbFace* roof2 = new AcDbFace(ceilingPoint3, ceilingPoint4, roofPoint1, roofPoint2, TRUE, TRUE, TRUE, TRUE);
 		
 
 		//database connect
