@@ -73,7 +73,7 @@ public:
 		createLayer(_T("substitut"), colorRed);
 
 		// Construct the filter 
-		struct resbuf eb1; 
+		struct resbuf eb1;
 		ACHAR sbuf1[10]; 
 		eb1.restype = 0; // Entity name 
 		wcscpy(sbuf1, _T("CIRCLE")); 
@@ -89,7 +89,8 @@ public:
 		} 
 
 		// Free the resbuf 
-		acutRelRb(&eb1); 
+		//acutRelRb(&eb1); 
+		
 
 		// Get the length (how many entities were selected) 
 		long length = 0; 
