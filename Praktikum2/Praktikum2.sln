@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Praktikum2", "Praktikum2.vcxproj", "{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}"
+EndProject
+Global
+	GlobalSection(SubversionScc) = preSolution
+		Svn-Managed = True
+		Manager = AnkhSVN - Subversion Support for Visual Studio
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}.Debug|Win32.Build.0 = Debug|Win32
+		{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}.Debug|x64.ActiveCfg = Debug|x64
+		{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}.Debug|x64.Build.0 = Debug|x64
+		{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}.Release|Win32.ActiveCfg = Release|Win32
+		{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}.Release|Win32.Build.0 = Release|Win32
+		{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}.Release|x64.ActiveCfg = Release|x64
+		{8A8EDDE6-85A3-4C62-A6C5-11B5B0D3B4DF}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
