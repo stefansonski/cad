@@ -64,6 +64,10 @@ public:
 	// - CGCADPraktikum2.ktomany command (do not rename)
 	static void CGCADPraktikum2ktomany(void)
 	{
+		
+		// ! will createLayer("kreise", "0,255,0") eingeben können ohne Anlegen von instanzvariablen!
+
+		//create green and red layer
 		AcCmColor colorGreen;
 		colorGreen.setRGB(0,255,0);
 		createLayer(_T("kreise"), colorGreen);
@@ -71,35 +75,40 @@ public:
 		AcCmColor colorRed;
 		colorRed.setRGB(255,0,0);
 		createLayer(_T("substitut"), colorRed);
-
+		
+		
 		// Construct the filter 
 		struct resbuf eb1;
-		ACHAR sbuf1[10]; 
+		
+		//ACHAR sbuf1[10]; 
+		//wcscpy(sbuf1, _T("CIRCLE")); 
+		
+		TCHAR sbuf1[10];
 		eb1.restype = 0; // Entity name 
-		wcscpy(sbuf1, _T("CIRCLE")); 
+		_tcscpy(sbuf1, _T("CIRCLE"));
 		eb1.resval.rstring = sbuf1; 
 		eb1.rbnext = NULL; 
 
+		
 		// Select All Circles 
 		ads_name ss; 
 		if (acedSSGet(_T("X"), NULL, NULL, &eb1, ss) != RTNORM) 
 		{ 
 			acutRelRb(&eb1); 
 			return; 
-		} 
+		} 	
 
 		// Free the resbuf 
-		//acutRelRb(&eb1); 
-		
+		// acutRelRb(&eb1); 
 
 		// Get the length (how many entities were selected) 
 		long length = 0; 
-		if ((acedSSLength( ss, &length ) != RTNORM) || (length == 0))  
+		if ((acedSSLength(ss, &length) != RTNORM) || (length == 0))  
 		{ 
-			acedSSFree( ss ); 
+			acedSSFree(ss); 
 			return; 
-		} 
-
+		}
+		
 		ads_name ent; 
 		AcDbObjectId id = AcDbObjectId::kNull; 
 
@@ -108,19 +117,72 @@ public:
 		{ 
 			if (acedSSName(ss,i,ent) != RTNORM) continue; 
 			if (acdbGetObjectId(id,ent) != Acad::eOk) continue; 
+			
 			AcDbEntity* pEnt = NULL; 
 			if (acdbOpenAcDbEntity(pEnt,id,AcDb::kForWrite) != Acad::eOk) 
 				continue; 
 			// Change color 
 			pEnt->setLayer(_T("kreise")); 
-			pEnt->close(); 
+			
+			// draw into current circle the polygon
+			drawPolygon(pEnt);
+			
+			pEnt->close();
 		} 
 
 		// Free selection 
-		acedSSFree( ss );
+		acedSSFree(ss);
+	}
+
+	static void drawPolygon(AcDbEntity* pEnt){
+		
+		// 1. get coordinates from pEnt which is a circle
+		AcDbCircle* curCircle = new AcDbCircle();
+		curCircle = (AcDbCircle*)pEnt;
+
+		// value test
+		AcGePoint3d curCircleCenter =  curCircle->center();
+		acutPrintf(_T("\nCurCircleCenter: "));
+		acutPrintf(_T("\nx value: %d"),curCircleCenter.x);
+		acutPrintf(_T("\ny value: %d"),curCircleCenter.y);
+		acutPrintf(_T("\nz value: %d"),curCircleCenter.z);	
+		double curCircleRad = curCircle->radius();
+		acutPrintf(_T("\nrad: %d"),curCircleRad);
+
+		
+		// 2. draw
+		//database connect
+		AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
+		
+		//blocktable init
+		AcDbBlockTable* pBlockTable = NULL;
+		pDB->getSymbolTable(pBlockTable, AcDb::kForRead);
+		
+		//blocktable record init
+		AcDbBlockTableRecord* pBlockTableRecord = NULL;
+		pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
+		
+		pBlockTable->close();
+
+		// draw polygon (first test with a triangle)
+
+		AcGePoint3d p1(curCircleCenter);
+		AcGePoint3d p2(curCircleCenter.x+10,curCircleCenter.y+10,curCircleCenter.z);
+		AcGePoint3d p3(curCircleCenter.x+20,curCircleCenter.y,curCircleCenter.z);
+		
+		AcDbFace* triangle = new AcDbFace(p1, p2, p3, TRUE, TRUE, TRUE);
 
 
-		// Add your code for command CGCADPraktikum2.ktomany here
+		pBlockTableRecord->appendAcDbEntity(triangle);
+		pBlockTableRecord->close();
+		
+		triangle->setLayer(_T("substitut"));
+		triangle->close();
+		curCircle->close();
+		//poly->close();
+		//polyVertex->close();
+
+		return;
 	}
 
 	static void createLayer(const ACHAR* name, AcCmColor &color)
