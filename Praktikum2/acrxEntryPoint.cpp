@@ -68,10 +68,10 @@ public:
 	static void CGCADPraktikum2ktomany(void)
 	{
 		ads_real bulge;
-		acedGetReal(_T("Bulge in Prozent angeben"), &bulge);
+		acedGetReal(_T("Bulge in Prozent angeben: "), &bulge);
 		if(bulge > 100.0)
 		{
-			acutPrintf(_T("\nDie Bulge kann nicht größer als 100% sein"));
+			acutPrintf(_T("\nDie Bulge kann nicht größer als 100% sein!"));
 			return;
 		}
 		// ! will createLayer("kreise", "0,255,0") eingeben können ohne Anlegen von instanzvariablen!
@@ -149,17 +149,7 @@ public:
 		AcDbCircle* curCircle = new AcDbCircle();
 		curCircle = (AcDbCircle*)pEnt;
 
-		// value test
-		AcGePoint3d curCircleCenter =  curCircle->center();
-		acutPrintf(_T("\nCurCircleCenter: "));
-		acutPrintf(_T("\nx value: %d"),curCircleCenter.x);
-		acutPrintf(_T("\ny value: %d"),curCircleCenter.y);
-		acutPrintf(_T("\nz value: %d"),curCircleCenter.z);	
-		double curCircleRad = curCircle->radius();
-		acutPrintf(_T("\nrad: %d"),curCircleRad);
-
 		ads_real innerRadius = curCircle->radius() * (1.0 - bulge / 100);
-		long double a = sqrt(pow((long double)curCircle->radius(), 2) - pow((long double)innerRadius, 2));
 		ads_real alpha = 2 * acos(innerRadius / curCircle->radius());
 
 		AcGePoint3dArray points;
@@ -185,29 +175,10 @@ public:
 		for(int i = 0; i < points.length(); i++)
 		{
 			point = &points.at(i);
-			point->x += curCircleCenter.x;
-			point->y += curCircleCenter.y;
-			point->z += curCircleCenter.z;
+			point->x += curCircle->center().x;
+			point->y += curCircle->center().y;
+			point->z += curCircle->center().z;
 		}
-
-		/*do
-		{
-			nCounter++;
-			a = 2 * innerRadius * tan(2 * PI / nCounter);
-			alpha = acos(a / curCircle->radius());
-			realInnerRadius = sin(alpha) * curCircle->radius();
-		} while(realInnerRadius < innerRadius);
-
-		AcGePoint3dArray points;
-		AcGePoint3d* point = new AcGePoint3d(curCircleCenter.x,curCircleCenter.y + curCircle->radius(),curCircleCenter.z);
-		points.append(*point);
-		for(nCounter -= 1; nCounter > 0; nCounter--)
-		{
-			beta = 90.0 - alpha;
-
-			point =  new AcGePoint3d(point->x + realInnerRadius, point->y + a, point->z);
-			points.append(*point);
-		}*/
 
 		AcDb3dPolyline* polyLine = new AcDb3dPolyline(k3dSimplePoly, points, TRUE);
 
