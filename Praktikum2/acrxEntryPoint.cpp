@@ -134,7 +134,7 @@ public:
 			pEnt->setLayer(_T("kreise")); 
 			
 			// draw into current circle the polygon
-			drawPolygon(pEnt);
+			drawPolygon(pEnt, bulge);
 			
 			pEnt->close();
 		} 
@@ -158,21 +158,58 @@ public:
 		double curCircleRad = curCircle->radius();
 		acutPrintf(_T("\nrad: %d"),curCircleRad);
 
-		ads_real innerRadius = curCircle->radius() * (100.0 - bulge);
-		ads_real a = 0;
-		ads_real alpha = 0;
-		ads_real oldX = 0;
-		ads_real newX = 0;
-		ads_real realBulge = 0;
-		ads_real nCounter = 0;
+		ads_real innerRadius = curCircle->radius() * (1.0 - bulge / 100);
+		long double a = sqrt(pow((long double)curCircle->radius(), 2) - pow((long double)innerRadius, 2));
+		ads_real alpha = 2 * acos(innerRadius / curCircle->radius());
 
-		do
+		AcGePoint3dArray points;
+		AcGePoint3d* point = new AcGePoint3d(0.0, curCircle->radius(), 0.0);
+		points.append(*point);
+
+		ads_real sin_alpha = sin(alpha);
+		ads_real cos_alpha = cos(alpha);
+		ads_real x = 1;
+		ads_real y = 1;
+
+		ads_real degree = 0;
+		while(degree < 360)
+		{
+			degree += alpha * (180 / PI);
+			point = new AcGePoint3d(point->x * cos_alpha - point->y * sin_alpha, point->x * sin_alpha + point->y * cos_alpha, point->z);
+			points.append(*point);
+		}
+
+		points.removeLast();
+
+		//translate points
+		for(int i = 0; i < points.length(); i++)
+		{
+			point = &points.at(i);
+			point->x += curCircleCenter.x;
+			point->y += curCircleCenter.y;
+			point->z += curCircleCenter.z;
+		}
+
+		/*do
 		{
 			nCounter++;
-			a = 2 * innerRadius * tanf(2 * PI / nCounter);
-			alpha = 1 / cosf(a / curCircle->radius());
-			realBulge = sinf(alpha) * curCircle->radius();
-		} while(realBulge > curCircle->radius() - innerRadius);
+			a = 2 * innerRadius * tan(2 * PI / nCounter);
+			alpha = acos(a / curCircle->radius());
+			realInnerRadius = sin(alpha) * curCircle->radius();
+		} while(realInnerRadius < innerRadius);
+
+		AcGePoint3dArray points;
+		AcGePoint3d* point = new AcGePoint3d(curCircleCenter.x,curCircleCenter.y + curCircle->radius(),curCircleCenter.z);
+		points.append(*point);
+		for(nCounter -= 1; nCounter > 0; nCounter--)
+		{
+			beta = 90.0 - alpha;
+
+			point =  new AcGePoint3d(point->x + realInnerRadius, point->y + a, point->z);
+			points.append(*point);
+		}*/
+
+		AcDb3dPolyline* polyLine = new AcDb3dPolyline(k3dSimplePoly, points, TRUE);
 
 		// 2. draw
 		//database connect
@@ -187,18 +224,6 @@ public:
 		pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
 		
 		pBlockTable->close();
-
-		// draw polygon (first test with a triangle)
-
-		AcGePoint3d p1(curCircleCenter);
-		AcGePoint3d p2(curCircleCenter.x+200,curCircleCenter.y+200,curCircleCenter.z);
-		AcGePoint3d p3(curCircleCenter.x+400,curCircleCenter.y,curCircleCenter.z);
-		AcGePoint3dArray points;
-		points.append(p1);
-		points.append(p2);
-		points.append(p3);
-		AcDb3dPolyline* polyLine = new AcDb3dPolyline(k3dSimplePoly, points, TRUE);
-
 
 		//AcDbFace* triangle = new AcDbFace(p1, p2, p3, TRUE, TRUE, TRUE);
 
@@ -250,7 +275,7 @@ public:
 		   pLayerTbl->close(); 
 		   acutPrintf(_T("\n"));
 		   acutPrintf(name);
-		   acutPrintf(_T("already exists")); //output in the status line 
+		   acutPrintf(_T(" already exists")); //output in the status line 
 		}
 
 	}
