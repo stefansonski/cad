@@ -24,6 +24,9 @@
 //-----------------------------------------------------------------------------
 #include "StdAfx.h"
 #include "resource.h"
+#include <math.h>
+
+#define PI 3.14159265358979323846
 
 //-----------------------------------------------------------------------------
 #define szRDS _RXST("CGCAD")
@@ -64,7 +67,13 @@ public:
 	// - CGCADPraktikum2.ktomany command (do not rename)
 	static void CGCADPraktikum2ktomany(void)
 	{
-		
+		ads_real bulge;
+		acedGetReal(_T("Bulge in Prozent angeben"), &bulge);
+		if(bulge > 100.0)
+		{
+			acutPrintf(_T("\nDie Bulge kann nicht größer als 100% sein"));
+			return;
+		}
 		// ! will createLayer("kreise", "0,255,0") eingeben können ohne Anlegen von instanzvariablen!
 
 		//create green and red layer
@@ -84,7 +93,7 @@ public:
 		//wcscpy(sbuf1, _T("CIRCLE")); 
 		
 		TCHAR sbuf1[10];
-		eb1.restype = 0; // Entity name 
+		eb1.restype = 0; // Entity name h
 		_tcscpy(sbuf1, _T("CIRCLE"));
 		eb1.resval.rstring = sbuf1; 
 		eb1.rbnext = NULL; 
@@ -134,7 +143,7 @@ public:
 		acedSSFree(ss);
 	}
 
-	static void drawPolygon(AcDbEntity* pEnt){
+	static void drawPolygon(AcDbEntity* pEnt, ads_real& bulge){
 		
 		// 1. get coordinates from pEnt which is a circle
 		AcDbCircle* curCircle = new AcDbCircle();
@@ -149,7 +158,22 @@ public:
 		double curCircleRad = curCircle->radius();
 		acutPrintf(_T("\nrad: %d"),curCircleRad);
 
-		
+		ads_real innerRadius = curCircle->radius() * (100.0 - bulge);
+		ads_real a = 0;
+		ads_real alpha = 0;
+		ads_real oldX = 0;
+		ads_real newX = 0;
+		ads_real realBulge = 0;
+		ads_real nCounter = 0;
+
+		do
+		{
+			nCounter++;
+			a = 2 * innerRadius * tanf(2 * PI / nCounter);
+			alpha = 1 / cosf(a / curCircle->radius());
+			realBulge = sinf(alpha) * curCircle->radius();
+		} while(realBulge > curCircle->radius() - innerRadius);
+
 		// 2. draw
 		//database connect
 		AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
@@ -167,17 +191,23 @@ public:
 		// draw polygon (first test with a triangle)
 
 		AcGePoint3d p1(curCircleCenter);
-		AcGePoint3d p2(curCircleCenter.x+10,curCircleCenter.y+10,curCircleCenter.z);
-		AcGePoint3d p3(curCircleCenter.x+20,curCircleCenter.y,curCircleCenter.z);
-		
-		AcDbFace* triangle = new AcDbFace(p1, p2, p3, TRUE, TRUE, TRUE);
+		AcGePoint3d p2(curCircleCenter.x+200,curCircleCenter.y+200,curCircleCenter.z);
+		AcGePoint3d p3(curCircleCenter.x+400,curCircleCenter.y,curCircleCenter.z);
+		AcGePoint3dArray points;
+		points.append(p1);
+		points.append(p2);
+		points.append(p3);
+		AcDb3dPolyline* polyLine = new AcDb3dPolyline(k3dSimplePoly, points, TRUE);
 
 
-		pBlockTableRecord->appendAcDbEntity(triangle);
+		//AcDbFace* triangle = new AcDbFace(p1, p2, p3, TRUE, TRUE, TRUE);
+
+
+		pBlockTableRecord->appendAcDbEntity(polyLine);
 		pBlockTableRecord->close();
 		
-		triangle->setLayer(_T("substitut"));
-		triangle->close();
+		polyLine->setLayer(_T("substitut"));
+		polyLine->close();
 		curCircle->close();
 		//poly->close();
 		//polyVertex->close();
