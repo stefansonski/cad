@@ -169,14 +169,13 @@ public:
 		long double y = 1;
 
 		long double degree = 0;
+		circleDegree -= alphaDegree;
 		while(degree < circleDegree)
 		{
 			degree += alphaDegree;
 			point = new AcGePoint3d(point->x * cos_alpha - point->y * sin_alpha, point->x * sin_alpha + point->y * cos_alpha, point->z);
 			points.append(*point);
 		}
-
-		points.removeLast();
 
 		//translate points
 		for(int i = 0; i < points.length(); i++)
