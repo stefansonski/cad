@@ -150,7 +150,14 @@ public:
 		curCircle = (AcDbCircle*)pEnt;
 
 		ads_real innerRadius = curCircle->radius() * (1.0 - bulge / 100);
-		ads_real alpha = 2 * acos(innerRadius / curCircle->radius());
+		long double alpha = 2 * acos(innerRadius / curCircle->radius());
+
+		//approximation
+		long double circleDegree = 360;
+		long double alphaDegree = alpha * (180 / PI);
+		int drift = (int)(circleDegree / alphaDegree + 0.5);
+		alphaDegree = circleDegree/drift;
+		alpha = alphaDegree * (PI / 180);
 
 		AcGePoint3dArray points;
 		AcGePoint3d* point = new AcGePoint3d(0.0, curCircle->radius(), 0.0);
@@ -158,13 +165,13 @@ public:
 
 		ads_real sin_alpha = sin(alpha);
 		ads_real cos_alpha = cos(alpha);
-		ads_real x = 1;
-		ads_real y = 1;
+		long double x = 1;
+		long double y = 1;
 
-		ads_real degree = 0;
-		while(degree < 360)
+		long double degree = 0;
+		while(degree < circleDegree)
 		{
-			degree += alpha * (180 / PI);
+			degree += alphaDegree;
 			point = new AcGePoint3d(point->x * cos_alpha - point->y * sin_alpha, point->x * sin_alpha + point->y * cos_alpha, point->z);
 			points.append(*point);
 		}
