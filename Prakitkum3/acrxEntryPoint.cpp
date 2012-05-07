@@ -68,8 +68,8 @@ public:
 	static void CGCADPraktikum3round(void)
 	{
 		
-		ads_name ssname[2];
-		ads_point points[2];
+		ads_name ssname[2] = {};
+		ads_point points[2] = {};
 
 		ads_name ent; 
 		AcDbObjectId id = AcDbObjectId::kNull; 
@@ -78,7 +78,7 @@ public:
 		// Walk through the selection set and open each entity 
 		for (long i = 0; i < 2; i++)  
 		{ 
-			
+
 			if (acedGetPoint(NULL, _T("Objekt wählen"), points[i]) != RTNORM) return;
 			
 			// get line
@@ -95,8 +95,19 @@ public:
 				
 		AcGePoint3d* intersection = new AcGePoint3d();
 
-		getIntersection((AcDbLine*&)lines[0],(AcDbLine*&)lines[1],intersection);
-		
+		// calc Intersection Point
+		getIntersection((AcDbLine*)lines[0],(AcDbLine*)lines[1],intersection);
+
+		cout << "StartPoint before: " << "x = " << ((AcDbLine*&)lines[0])->startPoint().x << endl;
+		cout << "StartPoint before: " << "y = " << ((AcDbLine*&)lines[0])->startPoint().y << endl;
+		cout << "StartPoint before: " << "z = " << ((AcDbLine*&)lines[0])->startPoint().z << endl;
+
+		cutLines((AcDbLine*&)lines[0],(AcDbLine*&)lines[1],intersection,points[0],points[1]);
+
+		cout << "StartPoint before: " << "x = " << ((AcDbLine*&)lines[0])->startPoint().x << endl;
+		cout << "StartPoint before: " << "y = " << ((AcDbLine*&)lines[0])->startPoint().y << endl;
+		cout << "StartPoint before: " << "z = " << ((AcDbLine*&)lines[0])->startPoint().z << endl;
+
 
 		for (int i = 0; i < 2; i++)
 		{
@@ -104,7 +115,36 @@ public:
 		}
 	}
 
-	static void getIntersection(AcDbLine*& line1,AcDbLine*& line2, AcGePoint3d*& intersection){
+
+	static void cutLines(AcDbLine*& line1,AcDbLine*& line2, AcGePoint3d*& intersection, ads_point& point1, ads_point& point2){
+		
+		//find out how to cut the lines
+
+		if(isInLine(point1,line1->startPoint(),*intersection)){
+			line1->setEndPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
+		}else{
+			line1->setStartPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
+		}
+
+		if(isInLine(point2,line2->startPoint(),*intersection)){
+			line1->setEndPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
+		}else{
+			line1->setStartPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
+		}
+
+		//cout << "point is in line: " <<isInLine(point1,line1->startPoint(),intersection) << endl;
+	}
+
+	static bool isInLine(ads_point& point,AcGePoint3d& linePoint, AcGePoint3d& intersection){
+		
+		ads_real result = (point[0] - linePoint.x)/(intersection.x - linePoint.x);
+		if ( result <= 1 && result >= 0){
+			return true;
+		}
+		return false;
+	}
+
+	static void getIntersection(AcDbLine* line1,AcDbLine* line2, AcGePoint3d*& intersection){
 		
 		AcGePoint3d* directionVector1 = new AcGePoint3d();
 		AcGePoint3d* directionVector2 = new AcGePoint3d();
