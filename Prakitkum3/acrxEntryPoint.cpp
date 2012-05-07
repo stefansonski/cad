@@ -154,7 +154,7 @@ public:
 		getDirectionVector(line2, directionVector2);
 		
 		//calc intersection
-		ads_real nenner = directionVector2->y - (directionVector2->x * directionVector1->y);
+		ads_real nenner = (directionVector2->x * directionVector1->y) - (directionVector2->y * directionVector1->x);
 		try{
 			if (nenner == 0){
 				char string[] = "nenner = 0";
@@ -165,13 +165,13 @@ public:
 			return;
 		}
 		
-		ads_real zaehler = (directionVector1->x * (line1->startPoint().y - line2->startPoint().y) + ((line2->startPoint().x - line1->startPoint().x) * directionVector1->y));
+		ads_real zaehler = (directionVector1->x * (line2->startPoint().y - line1->startPoint().y) - ((line2->startPoint().x - line1->startPoint().x) * directionVector1->y));
 		
 		multiplier = zaehler / nenner;
 
 		intersection->x = line2->startPoint().x + multiplier * directionVector2->x;
 		intersection->y = line2->startPoint().y + multiplier * directionVector2->y;
-		intersection->z = line2->startPoint().z + multiplier * directionVector2->z;
+		//intersection->z = line2->startPoint().z + multiplier * directionVector2->z;
 	}
 
 	static void getDirectionVector(AcDbLine*& line, AcGePoint3d*& result){
