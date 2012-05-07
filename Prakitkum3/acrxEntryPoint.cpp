@@ -24,6 +24,9 @@
 //-----------------------------------------------------------------------------
 #include "StdAfx.h"
 #include "resource.h"
+#include <iostream>
+
+using namespace std;
 
 //-----------------------------------------------------------------------------
 #define szRDS _RXST("CGCAD")
@@ -61,7 +64,6 @@ public:
 	}
 
 
-	// ----- CGCADPraktikum3.round command
 	// ----- CGCADPraktikum3.round command
 	static void CGCADPraktikum3round(void)
 	{
@@ -113,6 +115,16 @@ public:
 		
 		//calc intersection
 		ads_real nenner = directionVector2->y - (directionVector2->x * directionVector1->y);
+		try{
+			if (nenner == 0){
+				char string[] = "nenner = 0";
+				throw string;
+			}
+		}catch(char* e){
+			cout << "An exception occurred. Exception: " << e << endl;
+			return;
+		}
+		
 		ads_real zaehler = (directionVector1->x * (line1->startPoint().y - line2->startPoint().y) + ((line2->startPoint().x - line1->startPoint().x) * directionVector1->y));
 		
 		multiplier = zaehler / nenner;
