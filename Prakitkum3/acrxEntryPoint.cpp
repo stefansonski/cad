@@ -25,6 +25,7 @@
 #include "StdAfx.h"
 #include "resource.h"
 #include <iostream>
+#include <math.h>
 
 using namespace std;
 
@@ -119,18 +120,21 @@ public:
 	static void cutLines(AcDbLine*& line1,AcDbLine*& line2, AcGePoint3d*& intersection, ads_point& point1, ads_point& point2){
 		
 		//find out how to cut the lines
+		if(isInLine(point1,line1->startPoint(),*intersection) && !isInLine(point1,line1->endPoint(),*intersection)){
+			AcGePoint3d tmpPoint(line1->startPoint());
+			line1->setStartPoint(line1->endPoint());
+			line1->setEndPoint(tmpPoint);
+		}
+		
+		line1->setStartPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
 
-		if(isInLine(point1,line1->startPoint(),*intersection)){
-			line1->setEndPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
-		}else{
-			line1->setStartPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
+		if(isInLine(point2,line2->startPoint(),*intersection) && !isInLine(point2,line2->endPoint(),*intersection)){
+			AcGePoint3d tmpPoint(line2->startPoint());
+			line2->setStartPoint(line2->endPoint());
+			line2->setEndPoint(tmpPoint);
 		}
 
-		if(isInLine(point2,line2->startPoint(),*intersection)){
-			line2->setEndPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
-		}else{
-			line2->setStartPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
-		}
+		line2->setStartPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
 
 		//cout << "point is in line: " <<isInLine(point1,line1->startPoint(),intersection) << endl;
 	}
@@ -190,6 +194,10 @@ public:
 		tmpEnd->z = tmpEnd->z - tmpStart->z;
 
 		*result = *tmpEnd;
+	}
+
+	static ads_real compareDistance(AcGePoint3d& point, AcGePoint3d*& intersection) {
+		return sqrt(pow(point.x - intersection->x, 2) + pow(point.y - intersection->y, 2));
 	}
 } ;
 
