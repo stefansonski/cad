@@ -127,9 +127,9 @@ public:
 		}
 
 		if(isInLine(point2,line2->startPoint(),*intersection)){
-			line1->setEndPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
+			line2->setEndPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
 		}else{
-			line1->setStartPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
+			line2->setStartPoint(AcGePoint3d(intersection->x,intersection->y,intersection->z));
 		}
 
 		//cout << "point is in line: " <<isInLine(point1,line1->startPoint(),intersection) << endl;
