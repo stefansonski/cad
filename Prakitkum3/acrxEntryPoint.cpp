@@ -90,14 +90,54 @@ public:
 			color.setRGB(255,0,0);
 			lines[i]->setColor(color);
 		} 
+				
+		AcGePoint3d* intersection = new AcGePoint3d();
+
+		getIntersection((AcDbLine*&)lines[0],(AcDbLine*&)lines[1],intersection);
 		
-
-
 
 		for (int i = 0; i < 2; i++)
 		{
 			lines[i]->close();
 		}
+	}
+
+	static void getIntersection(AcDbLine*& line1,AcDbLine*& line2, AcGePoint3d*& intersection){
+		
+		AcGePoint3d* directionVector1 = new AcGePoint3d();
+		AcGePoint3d* directionVector2 = new AcGePoint3d();
+		ads_real multiplier = 0;
+
+		getDirectionVector(line1, directionVector1);
+		getDirectionVector(line2, directionVector2);
+		
+		//calc intersection
+		ads_real nenner = directionVector2->y - (directionVector2->x * directionVector1->y);
+		ads_real zaehler = (directionVector1->x * (line1->startPoint().y - line2->startPoint().y) + ((line2->startPoint().x - line1->startPoint().x) * directionVector1->y));
+		
+		multiplier = zaehler / nenner;
+
+		intersection->x = line2->startPoint().x + multiplier * directionVector2->x;
+		intersection->y = line2->startPoint().y + multiplier * directionVector2->y;
+		intersection->z = line2->startPoint().z + multiplier * directionVector2->z;
+	}
+
+	static void getDirectionVector(AcDbLine*& line, AcGePoint3d*& result){
+		AcGePoint3d* tmpStart = new AcGePoint3d();
+		AcGePoint3d* tmpEnd = new AcGePoint3d();
+
+		*tmpStart = line->startPoint();
+		*tmpEnd = line->endPoint(); //liefert mir einen ungenauen wert wenn endpunkt mit festem wert statt mit fadenkreuz angegeben wird
+
+		acutPrintf(_T("\ntmpStart->x %d"), tmpStart->x);
+		acutPrintf(_T("\ntmpStart->y %d"), tmpStart->y);
+		acutPrintf(_T("\ntmpStart->z %d"), tmpStart->z);
+
+		tmpEnd->x = tmpEnd->x - tmpStart->x;
+		tmpEnd->y = tmpEnd->y - tmpStart->y;
+		tmpEnd->z = tmpEnd->z - tmpStart->z;
+
+		*result = *tmpEnd;
 	}
 } ;
 
