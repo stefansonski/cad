@@ -87,7 +87,15 @@ public:
 			faces[i] = (AcDbFace*)tmp;
 		}
 
-		
+		AcGeVector3d direction003;
+		AcGeVector3d direction103;
+		AcGeVector3d direction012;
+		AcGeVector3d direction112;
+
+		getDirectionVector(0, 3, faces[0], direction003);
+		getDirectionVector(0, 3, faces[1], direction103);
+		getDirectionVector(1, 2, faces[0], direction012);
+		getDirectionVector(1, 2, faces[1], direction112);
 
 		for(int i = 0; i < 2; i++) {
 			faces[i]->close();
@@ -108,6 +116,14 @@ public:
 
 	static void reactivateSnap(resbuf* oldOsnap) {
 		acedSetVar(_T("OSMODE"), oldOsnap);
+	}
+
+	static void getDirectionVector(int startIndex, int endIndex, AcDbFace* face, AcGeVector3d &result) {
+		AcGePoint3d startPoint;
+		AcGePoint3d endPoint;
+		face->getVertexAt(startIndex, startPoint);
+		face->getVertexAt(endIndex, endPoint);
+		result = endPoint - startPoint;
 	}
 } ;
 
