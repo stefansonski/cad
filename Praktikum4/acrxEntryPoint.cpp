@@ -110,7 +110,7 @@ public:
 		crossVec = crossVec.normalize();
 
 		double result[2];
-		AcGePoint3d cross;
+		double cross1, cross2, crossVec1, crossVec2;
 		for(int i = 0; i < 2; i++) 
 		{
 			result[i] = points[i][0].asVector().negate().dotProduct(crossVec);
@@ -118,21 +118,24 @@ public:
 
 		if(normal[0].x != 0.0 && (normal[1].x * normal[0].y / normal[0].x) + normal[1].y != 0.0)
 		{
-			cross.y = -1 * ((result[1] - (normal[1].x * result[0] / normal[0].x)) / ((normal[1].x * normal[0].y / normal[0].x) + normal[1].y));
-			cross.x = (result[0] - normal[0].y * cross.y) / normal[0].x;
-			cross.z = 0;
+			cross2 = -1 * ((result[1] - (normal[1].x * result[0] / normal[0].x)) / ((normal[1].x * normal[0].y / normal[0].x) + normal[1].y));
+			cross1 = (result[0] - normal[0].y * cross2) / normal[0].x;
+			crossVec2 = crossVec.y;
+			crossVec1 = crossVec.x;
 		}
 		else if(normal[0].y != 0.0 && (normal[1].y * normal[0].z / normal[0].y) + normal[1].z != 0.0)
 		{
-			cross.z = -1 * ((result[1] - (normal[1].y * result[0] / normal[0].z)) / ((normal[1].y * normal[0].z / normal[0].y) + normal[1].z));
-			cross.y = (result[0] - normal[0].z * cross.z) / normal[0].y;
-			cross.x = 0;
+			cross2 = -1 * ((result[1] - (normal[1].y * result[0] / normal[0].z)) / ((normal[1].y * normal[0].z / normal[0].y) + normal[1].z));
+			cross1 = (result[0] - normal[0].z * cross2) / normal[0].y;
+			crossVec2 = crossVec.x;
+			crossVec1 = crossVec.z;
 		}
 		else if(normal[0].z != 0.0 && (normal[1].z * normal[0].x / normal[0].z) + normal[1].x != 0.0)
 		{
-			cross.x = -1 * ((result[1] - (normal[1].z * result[0] / normal[0].x)) / ((normal[1].z * normal[0].x / normal[0].z) + normal[1].x));
-			cross.z = (result[0] - normal[0].x * cross.x) / normal[0].z;
-			cross.y = 0;
+			cross2 = -1 * ((result[1] - (normal[1].z * result[0] / normal[0].x)) / ((normal[1].z * normal[0].x / normal[0].z) + normal[1].x));
+			cross1 = (result[0] - normal[0].x * cross2) / normal[0].z;
+			crossVec2 = crossVec.y;
+			crossVec1 = crossVec.z;
 		}
 
 		AcGePoint3d crossPoint[2];
@@ -140,20 +143,14 @@ public:
 		//dirty shit is now comming
 		for(int i = 0; i < 4; i++) {
 			int next = (i + 1) % 4;
-			AcGeVector3d tmp = points[1][next] - points[1][i];
+			AcGeVector3d tmp = points[0][next] - points[0][i];
 			boolean found = false;
-			double a1, a2, a3, cross1, cross2, cross3, crossVec1, crossVec2, crossVec3, tmp1, tmp2, tmp3;
+			double a1, a2, a3, tmp1, tmp2, tmp3;
 			if(tmp.x != 0.0 && tmp.y != 0.0)
 			{
-				a1 = points[1][i].x;
-				a2 = points[1][i].y;
-				a3 = points[1][i].z;
-				cross1 = cross.x;
-				cross2 = cross.y;
-				cross3 = cross.z;
-				crossVec1 = crossVec.x;
-				crossVec2 = crossVec.y;
-				crossVec3 = crossVec.z;
+				a1 = points[0][i].x;
+				a2 = points[0][i].y;
+				a3 = points[0][i].z;
 				tmp1 = tmp.x;
 				tmp2 = tmp.y;
 				tmp3 = tmp.z;
@@ -161,15 +158,9 @@ public:
 			}
 			else if(tmp.x != 0.0 && tmp.z != 0.0)
 			{
-				a1 = points[1][i].x;
-				a2 = points[1][i].z;
-				a3 = points[1][i].y;
-				cross1 = cross.x;
-				cross2 = cross.z;
-				cross3 = cross.y;
-				crossVec1 = crossVec.x;
-				crossVec2 = crossVec.z;
-				crossVec3 = crossVec.y;
+				a1 = points[0][i].x;
+				a2 = points[0][i].z;
+				a3 = points[0][i].y;
 				tmp1 = tmp.x;
 				tmp2 = tmp.z;
 				tmp3 = tmp.y;
@@ -177,15 +168,9 @@ public:
 			}
 			else if(tmp.y != 0.0 && tmp.z != 0.0) 
 			{
-				a1 = points[1][i].y;
-				a2 = points[1][i].z;
-				a3 = points[1][i].x;
-				cross1 = cross.y;
-				cross2 = cross.z;
-				cross3 = cross.x;
-				crossVec1 = crossVec.y;
-				crossVec2 = crossVec.z;
-				crossVec3 = crossVec.x;
+				a1 = points[0][i].y;
+				a2 = points[0][i].z;
+				a3 = points[0][i].x;
 				tmp1 = tmp.y;
 				tmp2 = tmp.z;
 				tmp3 = tmp.x;
@@ -194,19 +179,16 @@ public:
 
 			if(found)
 			{
-				double mue = (a3 - cross3 + ((cross2 * tmp3 - a2 * tmp3) / tmp2)) / (crossVec3 - ((crossVec2 * tmp3) / tmp2));
-				double lambda = (cross2 + mue * crossVec2 - a2) / tmp2;
-				//if(a3 + lambda * tmp3 - cross3 + mue * crossVec3 <= 0.000000000000000000001 && a3 + lambda * tmp3 - cross3 + mue * crossVec3 >= -0.000000000000000000001)
+				double mue = (a2 - cross2 + ((cross1 * tmp2 - a1 * tmp2) / tmp1)) / (crossVec2 - ((crossVec1 * tmp2) / tmp1));
+				double lambda = (cross1 + mue * crossVec1 - a1) / tmp1;
+				crossPoint[counter].x = points[0][i].x + lambda * tmp.x;
+				crossPoint[counter].y = points[0][i].y + lambda * tmp.y;
+				crossPoint[counter].z = points[0][i].z + lambda * tmp.z;
+				counter++;
+				if(counter == 2)
 				{
-					crossPoint[counter].x = points[1][i].x + lambda * tmp.x;
-					crossPoint[counter].y = points[1][i].y + lambda * tmp.y;
-					crossPoint[counter].z = points[1][i].z + lambda * tmp.z;
-					counter++;
-					if(counter == 2)
-					{
-						acutPrintf(_T("2 Points found"));
-						break;
-					}
+					acutPrintf(_T("2 Points found"));
+					break;
 				}
 			}
 		}
@@ -216,7 +198,13 @@ public:
 		{
 			if((normal[1].dotProduct(points[0][i].asVector()) - result[1])  < 0.0)
 			{
-				faces[0]->setVertexAt(i, crossPoint[counter++]);
+				if(points[0][i].x == crossPoint[counter].x || points[0][i].y == crossPoint[counter].y || points[0][i].z == crossPoint[counter].z)
+				{
+					faces[0]->setVertexAt(i, crossPoint[counter]);
+					counter++;
+				}
+				else
+					faces[0]->setVertexAt(i, crossPoint[counter+1]);
 			}
 		}
 
