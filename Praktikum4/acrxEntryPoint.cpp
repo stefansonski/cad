@@ -87,15 +87,138 @@ public:
 			faces[i] = (AcDbFace*)tmp;
 		}
 
-		AcGeVector3d direction003;
-		AcGeVector3d direction103;
-		AcGeVector3d direction012;
-		AcGeVector3d direction112;
+		AcGePoint3d points[2][4];	
+		AcGeVector3d normal[2];
 
-		getDirectionVector(0, 3, faces[0], direction003);
-		getDirectionVector(0, 3, faces[1], direction103);
-		getDirectionVector(1, 2, faces[0], direction012);
-		getDirectionVector(1, 2, faces[1], direction112);
+		for(int i = 0; i < 2; i++)
+		{
+			for(int j = 0; j < 4; j++)
+			{
+				faces[i]->getVertexAt(j, points[i][j]);
+			}
+
+			AcGeVector3d direction01;
+			AcGeVector3d direction03;
+			direction01 = points[i][1] - points[i][0];
+			direction03 = points[i][3] - points[i][0];
+			normal[i] = direction01.crossProduct(direction03);
+			normal[i] = normal[i].normalize();
+		}
+
+		AcGeVector3d crossVec;
+		crossVec = normal[0].crossProduct(normal[1]);
+		crossVec = crossVec.normalize();
+
+		double result[2];
+		AcGePoint3d cross;
+		for(int i = 0; i < 2; i++) 
+		{
+			result[i] = points[i][0].asVector().negate().dotProduct(crossVec);
+		}
+
+		if(normal[0].x != 0.0 && (normal[1].x * normal[0].y / normal[0].x) + normal[1].y != 0.0)
+		{
+			cross.y = -1 * ((result[1] - (normal[1].x * result[0] / normal[0].x)) / ((normal[1].x * normal[0].y / normal[0].x) + normal[1].y));
+			cross.x = (result[0] - normal[0].y * cross.y) / normal[0].x;
+			cross.z = 0;
+		}
+		else if(normal[0].y != 0.0 && (normal[1].y * normal[0].z / normal[0].y) + normal[1].z != 0.0)
+		{
+			cross.z = -1 * ((result[1] - (normal[1].y * result[0] / normal[0].z)) / ((normal[1].y * normal[0].z / normal[0].y) + normal[1].z));
+			cross.y = (result[0] - normal[0].z * cross.z) / normal[0].y;
+			cross.x = 0;
+		}
+		else if(normal[0].z != 0.0 && (normal[1].z * normal[0].x / normal[0].z) + normal[1].x != 0.0)
+		{
+			cross.x = -1 * ((result[1] - (normal[1].z * result[0] / normal[0].x)) / ((normal[1].z * normal[0].x / normal[0].z) + normal[1].x));
+			cross.z = (result[0] - normal[0].x * cross.x) / normal[0].z;
+			cross.y = 0;
+		}
+
+		AcGePoint3d crossPoint[2];
+		int counter = 0;
+		//dirty shit is now comming
+		for(int i = 0; i < 4; i++) {
+			int next = (i + 1) % 4;
+			AcGeVector3d tmp = points[1][next] - points[1][i];
+			boolean found = false;
+			double a1, a2, a3, cross1, cross2, cross3, crossVec1, crossVec2, crossVec3, tmp1, tmp2, tmp3;
+			if(tmp.x != 0.0 && tmp.y != 0.0)
+			{
+				a1 = points[1][i].x;
+				a2 = points[1][i].y;
+				a3 = points[1][i].z;
+				cross1 = cross.x;
+				cross2 = cross.y;
+				cross3 = cross.z;
+				crossVec1 = crossVec.x;
+				crossVec2 = crossVec.y;
+				crossVec3 = crossVec.z;
+				tmp1 = tmp.x;
+				tmp2 = tmp.y;
+				tmp3 = tmp.z;
+				found = true;
+			}
+			else if(tmp.x != 0.0 && tmp.z != 0.0)
+			{
+				a1 = points[1][i].x;
+				a2 = points[1][i].z;
+				a3 = points[1][i].y;
+				cross1 = cross.x;
+				cross2 = cross.z;
+				cross3 = cross.y;
+				crossVec1 = crossVec.x;
+				crossVec2 = crossVec.z;
+				crossVec3 = crossVec.y;
+				tmp1 = tmp.x;
+				tmp2 = tmp.z;
+				tmp3 = tmp.y;
+				found = true;
+			}
+			else if(tmp.y != 0.0 && tmp.z != 0.0) 
+			{
+				a1 = points[1][i].y;
+				a2 = points[1][i].z;
+				a3 = points[1][i].x;
+				cross1 = cross.y;
+				cross2 = cross.z;
+				cross3 = cross.x;
+				crossVec1 = crossVec.y;
+				crossVec2 = crossVec.z;
+				crossVec3 = crossVec.x;
+				tmp1 = tmp.y;
+				tmp2 = tmp.z;
+				tmp3 = tmp.x;
+				found = true;
+			}
+
+			if(found)
+			{
+				double mue = (a3 - cross3 + ((cross2 * tmp3 - a2 * tmp3) / tmp2)) / (crossVec3 - ((crossVec2 * tmp3) / tmp2));
+				double lambda = (cross2 + mue * crossVec2 - a2) / tmp2;
+				//if(a3 + lambda * tmp3 - cross3 + mue * crossVec3 <= 0.000000000000000000001 && a3 + lambda * tmp3 - cross3 + mue * crossVec3 >= -0.000000000000000000001)
+				{
+					crossPoint[counter].x = points[1][i].x + lambda * tmp.x;
+					crossPoint[counter].y = points[1][i].y + lambda * tmp.y;
+					crossPoint[counter].z = points[1][i].z + lambda * tmp.z;
+					counter++;
+					if(counter == 2)
+					{
+						acutPrintf(_T("2 Points found"));
+						break;
+					}
+				}
+			}
+		}
+
+		counter = 0;
+		for(int i = 0; i < 4; i++)
+		{
+			if((normal[1].dotProduct(points[0][i].asVector()) - result[1])  < 0.0)
+			{
+				faces[0]->setVertexAt(i, crossPoint[counter++]);
+			}
+		}
 
 		for(int i = 0; i < 2; i++) {
 			faces[i]->close();
@@ -116,14 +239,6 @@ public:
 
 	static void reactivateSnap(resbuf* oldOsnap) {
 		acedSetVar(_T("OSMODE"), oldOsnap);
-	}
-
-	static void getDirectionVector(int startIndex, int endIndex, AcDbFace* face, AcGeVector3d &result) {
-		AcGePoint3d startPoint;
-		AcGePoint3d endPoint;
-		face->getVertexAt(startIndex, startPoint);
-		face->getVertexAt(endIndex, endPoint);
-		result = endPoint - startPoint;
 	}
 } ;
 
