@@ -131,8 +131,9 @@ public:
 			for(int i = 0; i < allEdges.size() && newEdges.size() < points.size() - 3; i++)
 			{
 				Edge currentSmallestEdge = allEdges[i];
-				bool cross = false;
-				for(int j = 0; j < trees.size(); j++)
+				bool cross[2] = {false};
+				int index = 0;
+				for(int j = 0; j < trees.size() && index < 2; j++)
 				{
 					AcGePoint3d* currentPoint = NULL;
 					if(points[j] == currentSmallestEdge.first)
@@ -147,14 +148,25 @@ public:
 						int edge = trees[j].getEdgeForAngle(angle);
 						if(edge != 0)
 						{
-							if(*currentPoint != newEdges[edge - 1].first && *currentPoint != newEdges[edge - 1].second)
-								cross = true;
+							cross[index] = true;
+							index++;
 						}
 					}
 				}
-				if(!cross)
+				if(!(cross[0] && cross[1]))
 				{
 					newEdges.push_back(currentSmallestEdge);
+
+					int edgePoint[2];
+					index = 0;
+					for(int k = 0; k < points.size(); k++)
+					{
+						if(points[k] == currentSmallestEdge.first || points[k] == currentSmallestEdge.second)
+						{
+							edgePoint[index] = k;
+						}
+					}
+
 					for(int j = 0; j < trees.size(); j++)
 					{
 						if(currentSmallestEdge.first != points[j] && currentSmallestEdge.second != points[j])
@@ -162,10 +174,19 @@ public:
 							int angle[2];
 							angle[0] = (int)(atan2(currentSmallestEdge.first.y - points[j].y, currentSmallestEdge.first.x - points[j].x) * 180 / PI);
 							angle[1] = (int)(atan2(currentSmallestEdge.second.y - points[j].y, currentSmallestEdge.second.x - points[j].x) * 180 / PI);
+							
 							angle[0] < 0 ? angle[0] += 360: angle[0];
 							angle[1] < 0 ? angle[1] += 360: angle[1];
 
-							trees[j].setBlockingEdge(angle[0], angle[1], newEdges.size());
+							int tmp = angle[1];
+							if(angle[1] < angle[0])
+								tmp += 360;
+
+							int diff = tmp - angle[0];
+							if(diff > 180)
+								trees[j].setBlockingEdge(angle[1], angle[0], newEdges.size());
+							else
+								trees[j].setBlockingEdge(angle[0], angle[1], newEdges.size());
 						}
 					}
 				}
