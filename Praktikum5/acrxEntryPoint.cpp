@@ -143,10 +143,6 @@ public:
 					{
 						int angle = (int)((atan2(points[j].y - currentPoint->y, points[j].x - currentPoint->x)) * 180 / PI);
 						angle < 0 ? angle += 360: angle;
-						if(points[j].x < currentPoint->x && points[j].y > currentPoint->y)
-							angle += 90;
-						else if(points[j].x < currentPoint->x && points[j].y < currentPoint->y)
-							angle -= 90;
 
 						int edge = trees[j].getEdgeForAngle(angle);
 						if(edge != 0)
@@ -168,18 +164,8 @@ public:
 							angle[1] = (int)(atan2(currentSmallestEdge.second.y - points[j].y, currentSmallestEdge.second.x - points[j].x) * 180 / PI);
 							angle[0] < 0 ? angle[0] += 360: angle[0];
 							angle[1] < 0 ? angle[1] += 360: angle[1];
-							if(points[j].x > currentSmallestEdge.first.x && points[j].y > currentSmallestEdge.first.y)
-								angle[0] -= 90;
-							else if(points[j].x > currentSmallestEdge.first.x && points[j].y < currentSmallestEdge.first.y)
-								angle[0] += 90;
-							if(points[j].x > currentSmallestEdge.second.x && points[j].y > currentSmallestEdge.second.y)
-								angle[1] -= 90;
-							else if(points[j].x > currentSmallestEdge.second.x && points[j].y < currentSmallestEdge.second.y)
-								angle[1] += 90;
-							if(angle[0] - angle[1] > 0)
-								trees[j].setBlockingEdge(angle[0], angle[1], newEdges.size());
-							else if(angle[1] - angle[0] > 0)
-								trees[j].setBlockingEdge(angle[1], angle[0], newEdges.size());
+
+							trees[j].setBlockingEdge(angle[0], angle[1], newEdges.size());
 						}
 					}
 				}
