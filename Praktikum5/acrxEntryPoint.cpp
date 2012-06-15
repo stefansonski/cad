@@ -48,7 +48,7 @@ public:
 
 		// You *must* call On_kInitAppMsg here
 		AcRx::AppRetCode retCode =AcRxArxApp::On_kInitAppMsg (pkt) ;
-		
+
 		// TODO: Add your initialization code here
 
 		return (retCode) ;
@@ -100,9 +100,6 @@ public:
 			if(acdbGetObjectId(id,ent) != Acad::eOk) return; 
 			if(acdbOpenAcDbEntity(tmp,id,AcDb::kForRead) != Acad::eOk) return;
 			AcDbPolyline* polyline = (AcDbPolyline*)tmp;
-			std::vector<Edge> edges;
-			std::vector<Edge> allEdges;
-			std::vector<Edge> newEdges;
 			std::vector<AcGePoint3d> points;
 			std::vector<TwoThreeTree> trees;
 			for(int i = 0; i < polyline->numVerts(); i++)
@@ -116,122 +113,7 @@ public:
 			}
 			polyline->close();
 
-			for(int i = 0; i < points.size(); i++)
-			{
-				for(int j = i + 1; j < points.size(); j++)
-				{
-					if(i + 1 == j || (i == 0 && j == points.size() - 1))
-						edges.push_back(Edge(points[i], points[j]));
-					else
-						allEdges.push_back(Edge(points[i], points[j]));
-				}
-			}
-
-			std::sort(allEdges.begin(), allEdges.end(), compareEdgesBySize);
-			for(int i = 0; i < allEdges.size() && newEdges.size() < points.size() - 3; i++)
-			{
-				Edge currentSmallestEdge = allEdges[i];
-				bool cross[2] = {false};
-				int index = 0;
-				for(int j = 0; j < trees.size() && index < 2; j++)
-				{
-					AcGePoint3d* currentPoint = NULL;
-					if(points[j] == currentSmallestEdge.first)
-						currentPoint = &currentSmallestEdge.second;
-					else if(points[j] == currentSmallestEdge.second)
-						currentPoint = &currentSmallestEdge.first;
-					if(currentPoint != NULL)
-					{
-						int angle = (int)((atan2(points[j].y - currentPoint->y, points[j].x - currentPoint->x)) * 180 / PI);
-						angle < 0 ? angle += 360: angle;
-
-						int edge = trees[j].getEdgeForAngle(angle);
-						if(edge != 0)
-						{
-							cross[index] = true;
-							index++;
-						}
-					}
-				}
-				if(!(cross[0] && cross[1]))
-				{
-					newEdges.push_back(currentSmallestEdge);
-
-					int edgePoint[2];
-					index = 0;
-					for(int k = 0; k < points.size(); k++)
-					{
-						if(points[k] == currentSmallestEdge.first || points[k] == currentSmallestEdge.second)
-						{
-							edgePoint[index] = k;
-						}
-					}
-
-					for(int j = 0; j < trees.size(); j++)
-					{
-						if(currentSmallestEdge.first != points[j] && currentSmallestEdge.second != points[j])
-						{
-							int angle[2];
-							angle[0] = (int)(atan2(currentSmallestEdge.first.y - points[j].y, currentSmallestEdge.first.x - points[j].x) * 180 / PI);
-							angle[1] = (int)(atan2(currentSmallestEdge.second.y - points[j].y, currentSmallestEdge.second.x - points[j].x) * 180 / PI);
-							
-							angle[0] < 0 ? angle[0] += 360: angle[0];
-							angle[1] < 0 ? angle[1] += 360: angle[1];
-
-							int tmp = angle[1];
-							if(angle[1] < angle[0])
-								tmp += 360;
-
-							int diff = tmp - angle[0];
-							if(diff > 180)
-								trees[j].setBlockingEdge(angle[1], angle[0], newEdges.size());
-							else
-								trees[j].setBlockingEdge(angle[0], angle[1], newEdges.size());
-						}
-					}
-				}
-			}
-			//if(newEdges.size() == points.size() - 3)
-			{
-				//database connect
-				AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
-		
-				//blocktable init
-				AcDbBlockTable* pBlockTable = NULL;
-				pDB->getSymbolTable(pBlockTable, AcDb::kForRead);
-		
-				//blocktable record init
-				AcDbBlockTableRecord* pBlockTableRecord = NULL;
-				pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
-		
-				pBlockTable->close();
-
-/*				for(int i = 0; i < points.size(); i++)
-				{
-					AcDbFace* face;
-					for(int j = 0; j < newEdges.size(); j++)
-					{
-						if(points[i] == newEdges[j].first)
-						{
-							face = new AcDbFace(newEdges[j].first, newEdges[j].second, points[i == 0 ? (points.size() - 1) : i - 1], TRUE, TRUE, TRUE);
-							face->setLayer(_T("TRIANG"));
-							pBlockTableRecord->appendAcDbEntity(face);
-							face->close();
-						}
-					}
-				}
-*/
-				AcDbLine* line;
-					for(int j = 0; j < newEdges.size(); j++)
-					{
-						line = new AcDbLine(newEdges[j].first, newEdges[j].second);
-						line->setLayer(_T("TRIANG"));
-						pBlockTableRecord->appendAcDbEntity(line);
-						line->close();
-					}
-				pBlockTableRecord->close();
-
-			}
+			createPolygons(points, trees);
 		}
 	}
 
@@ -242,35 +124,35 @@ public:
 
 		//layer table
 		AcDbLayerTable* pLayerTbl = NULL; 
- 
+
 		// Get the LayerTable for write because we will create a new entry 
 		pDB->getSymbolTable(pLayerTbl,AcDb::kForWrite); 
- 
+
 		// Check if the layer is already there 
 		if (!pLayerTbl->has(name)) // _T for char Unicode convert  
 		{ 
-		   // Instantiate a new object and set its properties 
-		   AcDbLayerTableRecord *pLayerTblRcd = new AcDbLayerTableRecord; 
-		   pLayerTblRcd->setName(name); 
-		   pLayerTblRcd->setIsFrozen(0); // layer set to THAWED 
-		   pLayerTblRcd->setIsOff(0);    // layer set to ON 
-		   pLayerTblRcd->setIsLocked(0); // layer un-locked 
-		   pLayerTblRcd->setColor(color);
-		   // Now, add the new layer to its container 
-		   pLayerTbl->add(pLayerTblRcd); 
- 
-		   // Close the container 
-		   pLayerTblRcd->close();
-		   pLayerTbl->close();
-		   
+			// Instantiate a new object and set its properties 
+			AcDbLayerTableRecord *pLayerTblRcd = new AcDbLayerTableRecord; 
+			pLayerTblRcd->setName(name); 
+			pLayerTblRcd->setIsFrozen(0); // layer set to THAWED 
+			pLayerTblRcd->setIsOff(0);    // layer set to ON 
+			pLayerTblRcd->setIsLocked(0); // layer un-locked 
+			pLayerTblRcd->setColor(color);
+			// Now, add the new layer to its container 
+			pLayerTbl->add(pLayerTblRcd); 
+
+			// Close the container 
+			pLayerTblRcd->close();
+			pLayerTbl->close();
+
 		}  
 		else  
 		{ 
-		   // If our layer is already there, just close the container and continue 
-		   pLayerTbl->close(); 
-		   acutPrintf(_T("\n"));
-		   acutPrintf(name);
-		   acutPrintf(_T(" already exists")); //output in the status line 
+			// If our layer is already there, just close the container and continue 
+			pLayerTbl->close(); 
+			acutPrintf(_T("\n"));
+			acutPrintf(name);
+			acutPrintf(_T(" already exists")); //output in the status line 
 		}
 	}
 
@@ -281,9 +163,139 @@ public:
 		else
 			return false;
 	}
+
+	static void createPolygons(std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> trees)
+	{
+		std::vector<Edge> outerEdges;
+		std::vector<Edge> innerEdges;
+		std::vector<Edge> newEdges;
+		for(int i = 0; i < points.size(); i++)
+		{
+			for(int j = i + 1; j < points.size(); j++)
+			{
+				if(i + 1 == j || (i == 0 && j == points.size() - 1))
+					outerEdges.push_back(Edge(points[i], points[j]));
+				else
+					innerEdges.push_back(Edge(points[i], points[j]));
+			}
+		}
+
+		std::sort(innerEdges.begin(), innerEdges.end(), compareEdgesBySize);
+		for(int i = 0; i < innerEdges.size() && newEdges.size() < points.size() - 2; i++)
+		{	
+			if(!isEdgeBlocked(trees, innerEdges[i], points))
+			{
+				appendEdge(innerEdges[i], newEdges, points, trees);					
+			}
+		}
+
+		drawPolygons(newEdges, outerEdges);
+	}
+
+	static bool isEdgeBlocked(std::vector<TwoThreeTree> &trees, Edge &edge, std::vector<AcGePoint3d> &points)
+	{
+		bool cross[2] = {false};
+		int index = 0;
+		for(int j = 0; j < trees.size() && index < 2; j++)
+		{
+			AcGePoint3d* currentPoint = NULL;
+			if(points[j] == edge.first)
+				currentPoint = &edge.second;
+			else if(points[j] == edge.second)
+				currentPoint = &edge.first;
+			if(currentPoint != NULL)
+			{
+				int angle = (int)((atan2(currentPoint->y - points[j].y,currentPoint->x - points[j].x)) * 180 / PI);
+				angle < 0 ? angle += 360: angle;
+
+				int edge = trees[j].getEdgeForAngle(angle);
+				if(edge != 0)
+				{
+					cross[index] = true;
+					index++;
+				}
+			}
+		}
+		return cross[0] && cross[1] ? true : false;
+	}
+
+	static void appendEdge(Edge edge, std::vector<Edge> &edges, std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &trees)
+	{
+		edges.push_back(edge);
+		for(int j = 0; j < trees.size(); j++)
+		{
+			if(edge.first != points[j] && edge.second != points[j])
+			{
+				int angle[2];
+				angle[0] = (int)(atan2(edge.first.y - points[j].y, edge.first.x - points[j].x) * 180 / PI);
+				angle[1] = (int)(atan2(edge.second.y - points[j].y, edge.second.x - points[j].x) * 180 / PI);
+
+				angle[0] < 0 ? angle[0] += 360: angle[0];
+				angle[1] < 0 ? angle[1] += 360: angle[1];
+
+				int tmp = angle[1];
+				if(angle[1] < angle[0])
+					tmp += 360;
+
+				int diff = tmp - angle[0];
+				if(diff > 180)
+				{
+					trees[j].setBlockingEdge(angle[1], angle[0], edges.size());
+				}
+				else
+				{
+					trees[j].setBlockingEdge(angle[0], angle[1], edges.size());
+				}
+			}
+		}
+	}
+
+	static void drawPolygons(std::vector<Edge> &innerEdges, std::vector<Edge> &outerEdges)
+	{
+		{
+			//database connect
+			AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
+
+			//blocktable init
+			AcDbBlockTable* pBlockTable = NULL;
+			pDB->getSymbolTable(pBlockTable, AcDb::kForRead);
+
+			//blocktable record init
+			AcDbBlockTableRecord* pBlockTableRecord = NULL;
+			pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
+
+			pBlockTable->close();
+
+			/*				for(int i = 0; i < points.size(); i++)
+			{
+			AcDbFace* face;
+			for(int j = 0; j < newEdges.size(); j++)
+			{
+			if(points[i] == newEdges[j].first)
+			{
+			face = new AcDbFace(newEdges[j].first, newEdges[j].second, points[i == 0 ? (points.size() - 1) : i - 1], TRUE, TRUE, TRUE);
+			face->setLayer(_T("TRIANG"));
+			pBlockTableRecord->appendAcDbEntity(face);
+			face->close();
+			}
+			}
+			}
+			*/
+			AcDbLine* line;
+			for(int j = 0; j < innerEdges.size(); j++)
+			{
+				line = new AcDbLine(innerEdges[j].first, innerEdges[j].second);
+				line->setLayer(_T("TRIANG"));
+				pBlockTableRecord->appendAcDbEntity(line);
+				line->close();
+			}
+			pBlockTableRecord->close();
+
+		}
+	}
 } ;
 
 //-----------------------------------------------------------------------------
 IMPLEMENT_ARX_ENTRYPOINT(CPraktikum5App)
 
-ACED_ARXCOMMAND_ENTRY_AUTO(CPraktikum5App, CGCADPraktikum5, triangularize, triangulieren, ACRX_CMD_TRANSPARENT, NULL)
+	ACED_ARXCOMMAND_ENTRY_AUTO(CPraktikum5App, CGCADPraktikum5, triangularize, triangulieren, ACRX_CMD_TRANSPARENT, NULL)
