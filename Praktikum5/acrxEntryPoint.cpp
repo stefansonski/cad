@@ -101,19 +101,25 @@ public:
 			if(acdbOpenAcDbEntity(tmp,id,AcDb::kForRead) != Acad::eOk) return;
 			AcDbPolyline* polyline = (AcDbPolyline*)tmp;
 			std::vector<AcGePoint3d> points;
-			std::vector<TwoThreeTree> trees;
+			std::vector<TwoThreeTree> innerTrees;
+			std::vector<TwoThreeTree> outerTrees;
 			for(int i = 0; i < polyline->numVerts(); i++)
 			{
 				AcGePoint3d pt;
 				polyline->getPointAt(i, pt);
 				points.push_back(pt);
-				TwoThreeTree tree;
-				tree.insertAngle(360,0);
-				trees.push_back(tree);
+				TwoThreeTree innerTree;
+				innerTree.insertAngle(360,0);
+				innerTrees.push_back(innerTree);
+				TwoThreeTree outerTree;
+				outerTree.insertAngle(360,0);
+				outerTrees.push_back(outerTree);
 			}
 			polyline->close();
 
-			createPolygons(points, trees);
+			addOuterAngles(points, outerTrees);
+
+			createPolygons(points, innerTrees, outerTrees);
 		}
 	}
 
@@ -164,7 +170,7 @@ public:
 			return false;
 	}
 
-	static void createPolygons(std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> trees)
+	static void createPolygons(std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &innerTrees, std::vector<TwoThreeTree> &outerTrees)
 	{
 		std::vector<Edge> outerEdges;
 		std::vector<Edge> innerEdges;
@@ -183,20 +189,20 @@ public:
 		std::sort(innerEdges.begin(), innerEdges.end(), compareEdgesBySize);
 		for(int i = 0; i < innerEdges.size() && newEdges.size() < points.size() - 2; i++)
 		{	
-			if(!isEdgeBlocked(trees, innerEdges[i], points))
+			if(!isEdgeBlocked(innerEdges[i], points, innerTrees, outerTrees))
 			{
-				appendEdge(innerEdges[i], newEdges, points, trees);					
+				appendEdge(innerEdges[i], newEdges, points, innerTrees);					
 			}
 		}
 
 		drawPolygons(newEdges, outerEdges);
 	}
 
-	static bool isEdgeBlocked(std::vector<TwoThreeTree> &trees, Edge &edge, std::vector<AcGePoint3d> &points)
+	static bool isEdgeBlocked(Edge &edge, std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &innerTrees, std::vector<TwoThreeTree> &outerTrees)
 	{
 		bool cross[2] = {false};
 		int index = 0;
-		for(int j = 0; j < trees.size() && index < 2; j++)
+		for(int j = 0; j < points.size() && index < 2; j++)
 		{
 			AcGePoint3d* currentPoint = NULL;
 			if(points[j] == edge.first)
@@ -208,7 +214,13 @@ public:
 				int angle = (int)((atan2(currentPoint->y - points[j].y,currentPoint->x - points[j].x)) * 180 / PI);
 				angle < 0 ? angle += 360: angle;
 
-				int edge = trees[j].getEdgeForAngle(angle);
+				int edge = outerTrees[j].getEdgeForAngle(angle);
+				if(edge == -1)
+				{
+					return true;
+				}
+
+				edge = innerTrees[j].getEdgeForAngle(angle);
 				if(edge != 0)
 				{
 					cross[index] = true;
@@ -222,13 +234,13 @@ public:
 	static void appendEdge(Edge edge, std::vector<Edge> &edges, std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &trees)
 	{
 		edges.push_back(edge);
-		for(int j = 0; j < trees.size(); j++)
+		for(int i = 0; i < trees.size(); i++)
 		{
-			if(edge.first != points[j] && edge.second != points[j])
+			if(edge.first != points[i] && edge.second != points[i])
 			{
 				int angle[2];
-				angle[0] = (int)(atan2(edge.first.y - points[j].y, edge.first.x - points[j].x) * 180 / PI);
-				angle[1] = (int)(atan2(edge.second.y - points[j].y, edge.second.x - points[j].x) * 180 / PI);
+				angle[0] = (int)(atan2(edge.first.y - points[i].y, edge.first.x - points[i].x) * 180 / PI);
+				angle[1] = (int)(atan2(edge.second.y - points[i].y, edge.second.x - points[i].x) * 180 / PI);
 
 				angle[0] < 0 ? angle[0] += 360: angle[0];
 				angle[1] < 0 ? angle[1] += 360: angle[1];
@@ -240,11 +252,11 @@ public:
 				int diff = tmp - angle[0];
 				if(diff > 180)
 				{
-					trees[j].setBlockingEdge(angle[1], angle[0], edges.size());
+					trees[i].setBlockingEdge(angle[1], angle[0], edges.size());
 				}
 				else
 				{
-					trees[j].setBlockingEdge(angle[0], angle[1], edges.size());
+					trees[i].setBlockingEdge(angle[0], angle[1], edges.size());
 				}
 			}
 		}
@@ -291,6 +303,28 @@ public:
 			}
 			pBlockTableRecord->close();
 
+		}
+	}
+
+	static void addOuterAngles(std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &trees)
+	{
+		for(int i = 0; i < points.size(); i++)
+		{
+			int previous = i - 1;
+			int next = i + 1;
+			if(previous < 0)
+				previous += points.size();
+			if(next >= points.size())
+				next = 0;
+
+			int angle[2];
+			angle[0] = (int)(atan2(points[previous].y - points[i].y, points[previous].x - points[i].x) * 180 / PI);
+			angle[1] = (int)(atan2(points[next].y - points[i].y, points[next].x - points[i].x) * 180 / PI);
+
+			angle[0] < 0 ? angle[0] += 360: angle[0];
+			angle[1] < 0 ? angle[1] += 360: angle[1];
+
+			trees[i].setBlockingEdge(angle[0], angle[1], -1);
 		}
 	}
 } ;
