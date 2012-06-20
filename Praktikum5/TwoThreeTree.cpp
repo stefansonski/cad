@@ -450,7 +450,7 @@ TreeElement * TwoThreeTree::searchAngle(TreeElement * r, int angle, bool * found
 			else if (r->first->getAngle() > angle) // y1 > x
 				return r->first;
 		}
-		else if (r->first->getAngle() >= angle || r->numberChilds == 1) // x <= y1
+		else if ((r->first->getAngle() >= angle || r->numberChilds == 1) && r != r->first) // x <= y1
 			return searchAngle(r->first, angle, founded);
 		
 	if (r->second != 0) 
@@ -465,7 +465,7 @@ TreeElement * TwoThreeTree::searchAngle(TreeElement * r, int angle, bool * found
 			else if (r->second->getAngle() > angle) // y2 > x
 				return r->second;
 		}
-		else if (r->second->getAngle() >= angle || r->numberChilds == 2)
+		else if ((r->second->getAngle() >= angle || r->numberChilds == 2) && r != r->second)
 			return searchAngle(r->second, angle, founded);
 	}
 	else
@@ -486,7 +486,7 @@ TreeElement * TwoThreeTree::searchAngle(TreeElement * r, int angle, bool * found
 			else 
 				return r->third; // sonst
 		}
-		else 
+		else  if(r != r->third)
 			return searchAngle(r->third, angle, founded); // sonst
 	}
 	else
@@ -727,7 +727,7 @@ void TwoThreeTree::adaptKeys(TreeElement * p, int angle)
 	if (p->getAngle() < angle)
 		p->setAngle(angle);
 	
-	if (p->parent != 0)
+	if (p->parent != 0 && p != p->parent)
 		adaptKeys(p->parent, angle);
 }
 

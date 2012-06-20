@@ -38,9 +38,10 @@ typedef std::pair<AcGePoint3d, AcGePoint3d> Edge;
 
 //-----------------------------------------------------------------------------
 //----- ObjectARX EntryPoint
+//-----------------------------------------------------------------------------
 class CPraktikum5App : public AcRxArxApp {
 
-public:
+	public:
 	CPraktikum5App () : AcRxArxApp () {}
 
 	virtual AcRx::AppRetCode On_kInitAppMsg (void *pkt) {
@@ -68,8 +69,9 @@ public:
 	virtual void RegisterServerComponents () {
 	}
 
-
-	// - CGCADPraktikum5.triangularize command (do not rename)
+	//-----------------------------------------------------------------------------
+	// Los gehts!
+	//-----------------------------------------------------------------------------
 	static void CGCADPraktikum5triangularize(void)
 	{
 		struct resbuf polyline;
@@ -80,14 +82,15 @@ public:
 		Greedy(&polyline);
 	}
 
-	static void Greedy(struct resbuf *polyline)
+	static void Greedy(struct resbuf* polylineFilter)
 	{
 		AcCmColor color;
 		color.setRGB(0,0,255);
-		createLayer(_T("TRIANG"),color);
+		createLayer(_T("trianguliert"),color);
+
 		ads_name ssname;
 		long length = 0;
-		int res = acedSSGet(_T("X"), NULL, NULL, NULL, ssname);
+		int res = acedSSGet(_T("X"), NULL, NULL, polylineFilter, ssname);
 		if(res != RTNORM) return;
 		acedSSLength(ssname, &length);
 		for(int k = 0; k < length; k++)
@@ -99,27 +102,40 @@ public:
 			if(acedSSName(ssname,k,ent) != RTNORM) return;
 			if(acdbGetObjectId(id,ent) != Acad::eOk) return; 
 			if(acdbOpenAcDbEntity(tmp,id,AcDb::kForRead) != Acad::eOk) return;
+			
+			// gib mir die Polyline
 			AcDbPolyline* polyline = (AcDbPolyline*)tmp;
-			std::vector<AcGePoint3d> points;
-			std::vector<TwoThreeTree> innerTrees;
-			std::vector<TwoThreeTree> outerTrees;
-			for(int i = 0; i < polyline->numVerts(); i++)
+			
+			std::vector<AcGePoint3d> points;				// alle Punkte der Polyline p0-p(n-1)
+			std::vector<TwoThreeTree> trees;				// zu jedem Punkt ein Tree
+						
+
+			// points = alle Knoten
+			// tree = Speichenstern für jeden point
+			for(int i = 0; i < polyline->numVerts(); i++)	// gehe alle Punkte durch 
 			{
 				AcGePoint3d pt;
-				polyline->getPointAt(i, pt);
-				points.push_back(pt);
-				TwoThreeTree innerTree;
-				innerTree.insertAngle(360,0);
-				innerTrees.push_back(innerTree);
-				TwoThreeTree outerTree;
-				outerTree.insertAngle(360,0);
-				outerTrees.push_back(outerTree);
+				polyline->getPointAt(i, pt);				// gib mir den punkt im index i
+				bool exists = false;
+				for(int j = 0; j < points.size(); j++) {
+					if(points[j].x == pt.x && points[j].y == pt.y && points[j].z == pt.z) {
+						exists = true;
+					}
+				}
+				if(!exists)
+				{
+					points.push_back(pt);						// und steck ihn in points
+					TwoThreeTree tree;							
+					tree.insertAngle(360,0);					// Tree init für jeden Punkt
+					trees.push_back(tree);						// leg für jeden Punkt Tree mit 0°-360° an
+				}
 			}
+
 			polyline->close();
 
-			addOuterAngles(points, outerTrees);
+			addOuterAngles(points, trees);
 
-			createPolygons(points, innerTrees, outerTrees);
+			createPolygons(points, trees);
 		}
 	}
 
@@ -170,7 +186,7 @@ public:
 			return false;
 	}
 
-	static void createPolygons(std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &innerTrees, std::vector<TwoThreeTree> &outerTrees)
+	static void createPolygons(std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &trees)
 	{
 		std::vector<Edge> outerEdges;
 		std::vector<Edge> innerEdges;
@@ -187,48 +203,39 @@ public:
 		}
 
 		std::sort(innerEdges.begin(), innerEdges.end(), compareEdgesBySize);
-		for(int i = 0; i < innerEdges.size() && newEdges.size() < points.size() - 2; i++)
+		for(int i = 0; i < innerEdges.size() && newEdges.size() < points.size() - 3; i++)
 		{	
-			if(!isEdgeBlocked(innerEdges[i], points, innerTrees, outerTrees))
+			if(!isEdgeBlocked(innerEdges[i], points, trees))
 			{
-				appendEdge(innerEdges[i], newEdges, points, innerTrees);					
+				appendEdge(innerEdges[i], newEdges, points, trees);					
 			}
 		}
 
 		drawPolygons(newEdges, outerEdges);
 	}
 
-	static bool isEdgeBlocked(Edge &edge, std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &innerTrees, std::vector<TwoThreeTree> &outerTrees)
+	static bool isEdgeBlocked(Edge &edge, std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &trees)
 	{
-		bool cross[2] = {false};
-		int index = 0;
-		for(int j = 0; j < points.size() && index < 2; j++)
+		for(int j = 0; j < points.size(); j++)
 		{
-			AcGePoint3d* currentPoint = NULL;
 			if(points[j] == edge.first)
-				currentPoint = &edge.second;
-			else if(points[j] == edge.second)
-				currentPoint = &edge.first;
-			if(currentPoint != NULL)
 			{
-				int angle = (int)((atan2(currentPoint->y - points[j].y,currentPoint->x - points[j].x)) * 180 / PI);
+				int angle = (int)((atan2(edge.second.y - points[j].y,edge.second.x - points[j].x)) * 180 / PI);
 				angle < 0 ? angle += 360: angle;
 
-				int edge = outerTrees[j].getEdgeForAngle(angle);
-				if(edge == -1)
+				int edge = trees[j].getEdgeForAngle(angle);
+				acutPrintf(_T("points[i]: %d angle: %d \n"), j, angle);
+				if(edge != 0)
 				{
 					return true;
 				}
-
-				edge = innerTrees[j].getEdgeForAngle(angle);
-				if(edge != 0)
+				else
 				{
-					cross[index] = true;
-					index++;
+					return false;
 				}
 			}
 		}
-		return cross[0] && cross[1] ? true : false;
+		return false;
 	}
 
 	static void appendEdge(Edge edge, std::vector<Edge> &edges, std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &trees)
@@ -252,10 +259,12 @@ public:
 				int diff = tmp - angle[0];
 				if(diff > 180)
 				{
+					acutPrintf(_T("points[i]: %d startangle: %d endangle: %d\n"), i, angle[1], angle[0]);
 					trees[i].setBlockingEdge(angle[1], angle[0], edges.size());
 				}
 				else
 				{
+					acutPrintf(_T("points[i]: %d startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
 					trees[i].setBlockingEdge(angle[0], angle[1], edges.size());
 				}
 			}
@@ -300,6 +309,8 @@ public:
 				line->setLayer(_T("TRIANG"));
 				pBlockTableRecord->appendAcDbEntity(line);
 				line->close();
+				ads_real result;
+				acedGetReal(_T("Block"), &result);
 			}
 			pBlockTableRecord->close();
 
@@ -323,9 +334,10 @@ public:
 
 			angle[0] < 0 ? angle[0] += 360: angle[0];
 			angle[1] < 0 ? angle[1] += 360: angle[1];
-
+			acutPrintf(_T("points[i]: %d startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
 			trees[i].setBlockingEdge(angle[0], angle[1], -1);
 		}
+		acutPrintf(_T("________________________________"));
 	}
 } ;
 
