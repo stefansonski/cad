@@ -94,11 +94,11 @@ class CPraktikum5App : public AcRxArxApp {
 			
 			setPolyPoints();					// Es wird davon ausgegangen, dass tatsächlich eine Polyline existiert
 			setTrees();
-			setOuterAngles(polyPoints, trees);
+			setOuterAngles();
 			setOuterEdges();
 			setInnerEdges();
 			sortInnerEdges();
-			createPolygons(polyPoints, trees);
+			createPolygons();
 		
 	}
 
@@ -240,7 +240,7 @@ class CPraktikum5App : public AcRxArxApp {
 		std::sort(innerEdges.begin(), innerEdges.end(), compareEdgesBySize);
 	}
 
-	static void createPolygons(std::vector<AcGePoint3d> &polyPoints, std::vector<TwoThreeTree> &trees)
+	static void createPolygons()
 	{
 		//std::vector<Edge> outerEdges;
 		//std::vector<Edge> innerEdges;
@@ -371,7 +371,7 @@ class CPraktikum5App : public AcRxArxApp {
 		}
 	}
 
-	static void setOuterAngles(std::vector<AcGePoint3d> &polyPoints, std::vector<TwoThreeTree> &trees){
+	static void setOuterAngles(){
 		//----------------------------------------------------------------------------------------
 		// bestimmt die anfangs und endwinkel eines knotens und fügt sie zu trees hinzu
 		//----------------------------------------------------------------------------------------
