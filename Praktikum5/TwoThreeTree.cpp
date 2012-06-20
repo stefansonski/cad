@@ -1,11 +1,12 @@
 ﻿// Autor: Stefan Wiesmann nach einem Skript von Steffen Lange
 //////////////////////////////////////////////////////////////////////
-
 #include "TwoThreeTree.h"
 #include <iostream>
 #include <iomanip>
+
 #define DEBUG false
 using namespace std;
+using namespace Tree;
 
 TwoThreeTree::TwoThreeTree(void)
 {
@@ -17,10 +18,14 @@ TwoThreeTree::~TwoThreeTree(void)
 
 void TwoThreeTree::browse()
 {
-	cout << "----------------------- 2-3 Baum ------------------------------" << endl;
+	std::ofstream outFile("outputAngles.txt");
+
+	outFile << "----------------------- 2-3 Baum ------------------------------" << endl;
 	if (root != 0) 
-		browse(root,0);
-	cout << "---------------------------------------------------------------" << endl;
+		browse(root,0,outFile);
+
+	outFile << "---------------------------------------------------------------" << endl;
+	outFile.close();
 }
 
 /* Einfuegen
@@ -39,7 +44,7 @@ void TwoThreeTree::insertAngle(int angle, int edge)
 	TreeElement * found;
 	bool founded;
 	TreeElement * n = new TreeElement(angle, edge); 
-	//if (DEBUG) cout << "Einzufuegendes Element: angle=" << angle << endl;
+	if (DEBUG) cout << "Einzufuegendes Element: angle=" << angle << endl;
 	
 	if (root == 0) // special case if root empty
 	{
@@ -59,7 +64,7 @@ void TwoThreeTree::insertAngle(int angle, int edge)
 		
 		else // not founded
 		{
-			//if (DEBUG) cout << "Gefundenes Element: angle=" << found->getAngle() << endl;
+			if (DEBUG) cout << "Gefundenes Element: angle=" << found->getAngle() << endl;
 			
 			TreeElement * v = found->parent;
 			n->parent = v;
@@ -89,7 +94,7 @@ void TwoThreeTree::insertAngle(int angle, int edge)
 
 			else if (v->numberChilds == 2) // third child can append without problems
 			{
-				//if (DEBUG) cout << "Knoten hat bisher nur zwei Kinder" << endl;
+				if (DEBUG) cout << "Knoten hat bisher nur zwei Kinder" << endl;
 
 				if (v->first->getAngle() > angle) // n have to append absolutly left
 				{
@@ -129,7 +134,7 @@ void TwoThreeTree::insertAngle(int angle, int edge)
 			}	
 			else // v has three childs already; temporaly we make a fourth child
 			{
-				//if (DEBUG) cout << "Knoten hat bereits drei Kinder" << endl;
+				if (DEBUG) cout << "Knoten hat bereits drei Kinder" << endl;
 
 				if (v->first->getAngle() > angle) // n have to append absolutly left
 				{
@@ -196,7 +201,7 @@ void TwoThreeTree::setBlockingEdge(int startAngle, int endAngle, int edgeNumber)
 	}
 	else
 	{
-		//cout << "\nBlockingEdge von " << startAngle << " to " << endAngle << endl;
+		cout << "\nBlockingEdge von " << startAngle << " to " << endAngle << endl;
 		
 		int edgeNumberRight = -1;
 
@@ -206,11 +211,11 @@ void TwoThreeTree::setBlockingEdge(int startAngle, int endAngle, int edgeNumber)
 		t = searchAngle(root, startAngle, &existingAngle);
 		if (existingAngle)
 		{
-			//if (DEBUG) cout << "Startwinkel vorhanden" << endl;
+			if (DEBUG) cout << "Startwinkel vorhanden" << endl;
 		}
 		else
 		{
-			//if (DEBUG) cout << "Startwinkel NICHT vorhanden" << endl;
+			if (DEBUG) cout << "Startwinkel NICHT vorhanden" << endl;
 			edgeNumberRight = getEdgeForAngle(t->getAngle());
 			insertAngle(startAngle, edgeNumberRight);
 		}
@@ -218,12 +223,12 @@ void TwoThreeTree::setBlockingEdge(int startAngle, int endAngle, int edgeNumber)
 		t = searchAngle(root, endAngle, &existingAngle);
 		if (existingAngle)
 		{
-			//if (DEBUG) cout << "Endwinkel vorhanden" << endl;
+			if (DEBUG) cout << "Endwinkel vorhanden" << endl;
 			t->setEdge(edgeNumber);
 		}
 		else
 		{
-			//if (DEBUG) cout << "Endwinkel NICHT vorhanden" << endl;
+			if (DEBUG) cout << "Endwinkel NICHT vorhanden" << endl;
 			insertAngle(endAngle, edgeNumber);
 		}
 
@@ -234,7 +239,7 @@ void TwoThreeTree::setBlockingEdge(int startAngle, int endAngle, int edgeNumber)
 			if ( t!= 0 && t->getAngle() < endAngle)
 			{
 				int w = t->getAngle();
-				//if (DEBUG) cout << "geloescht werden soll Winkel " << w << endl;
+				if (DEBUG) cout << "geloescht werden soll Winkel " << w << endl;
 				t = findNextLeaf(t);
 				deleteAngle(w);
 			}
@@ -251,16 +256,33 @@ int TwoThreeTree::getEdgeForAngle(int angle)
 	return t->getEdge();
 }
 
-void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
+int TwoThreeTree::getEdgeForAngleFinal(int angle)
 {
+       TreeElement * t;
+       bool founded;
+       t = searchAngle(root, angle, &founded);
+       if (DEBUG) cout << "founded= " << founded << endl;   
+       if (founded)
+             return -1;
+       else
+             return t->getEdge();
+}
+
+void TwoThreeTree::normalizeTreeAdd(TreeElement * v) //-----------------------------------------------------------------------------------
+{
+	if (DEBUG) cout << "\nRekursiver Aufruf normalizeTreeAdd\n" << endl;
+	
 	TreeElement * v1 = new TreeElement();
 	v1->first = v->first;
 	v1->first->parent = v1;
 	v1->first->whichChildIam = 1;
+	if (DEBUG) cout << "in normalizeTreeAdd: v firstAngle= " << v->first->getAngle() << endl;
 	v1->second = v->second;
 	v1->second->parent = v1;
 	v1->second->whichChildIam = 2;
+	if (DEBUG) cout << "in normalizeTreeAdd: v secondAngle= " << v->second->getAngle() << endl;
 	v1->numberChilds = 2;
+	if (DEBUG) cout << "in normalizeTreeAdd: v1 mit 2 Kindern" << endl;
 	adaptKeys(v1,v1->second->getAngle());
 				
 	TreeElement * v2 = new TreeElement();
@@ -271,12 +293,13 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 	v2->second->parent = v2;
 	v2->second->whichChildIam = 2;
 	v2->numberChilds = 2;
+	if (DEBUG) cout << "in normalizeTreeAdd: v2 mit 2 Kindern" << endl;
 	adaptKeys(v2,v2->second->getAngle());
 
-	//if (DEBUG) cout << "Zwei neue Knoten angelegt" << endl;
+	if (DEBUG) cout << "Zwei neue Knoten angelegt" << endl;
 
 	TreeElement * vStrich = v->parent;
-				
+		
 	if (vStrich == 0) // v' don't exist
 	{
 		vStrich = new TreeElement();
@@ -287,28 +310,45 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 		v2->parent = vStrich;
 		v2->whichChildIam = 2;
 		vStrich->numberChilds = 2;
+		if (DEBUG) cout << "in normalizeTreeAdd: vStrich existiert nicht" << endl;
 		adaptKeys(v2,v2->second->getAngle());
 		this->root = vStrich;
 	}
 	else
 	{
+		if (DEBUG) cout << "numberChild in vStrich= " << vStrich->numberChilds << endl;		
+		
+		//*****************************************************geänderter Bereich Start WI 19062012
 		// delete v from vStrich
 		if (v->whichChildIam == 1)
 		{
 			vStrich->first = vStrich->second;
 			vStrich->first->whichChildIam = 1;
+			vStrich->second = vStrich->third;
+			if (vStrich->second != 0)
+				vStrich->second->whichChildIam = 2;
+			vStrich->third = 0;
 		}
-		vStrich->second = vStrich->third;
-		if (vStrich->second != 0)
-			vStrich->second->whichChildIam = 2;
-		vStrich->third = 0;
+		else if (v->whichChildIam == 2)
+		{
+			vStrich->second = vStrich->third;
+			if (vStrich->second != 0)
+				vStrich->second->whichChildIam = 2;
+			vStrich->third = 0;
+		}
+		else if (v->whichChildIam == 3)
+		{
+			vStrich->third = 0;
+		}
+		
 		vStrich->numberChilds = vStrich->numberChilds-1;
 		
 		delete v;
-		
+		//*****************************************************geänderter Bereich Ende
+
 		if (vStrich->numberChilds == 1) // insert two new elements without problems
 		{
-			//if (DEBUG) cout << "drei Kinder in v'" << endl;
+			if (DEBUG) cout << "drei Kinder in v'" << endl;
 			if (vStrich->first->getAngle() < v1->getAngle()) // append right both elements
 			{
 				vStrich->second = v1;
@@ -337,13 +377,15 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 			v1->parent = vStrich;
 			v2->parent = vStrich;
 			vStrich->numberChilds = 3;
+			if (DEBUG) cout << "in normalizeTreeAdd: numberChilds =1" << endl;
 			adaptKeys(vStrich,vStrich->third->getAngle());
 		}
 		else // vStrich has already two childs; now we will have four childs
 		{
-			//if (DEBUG) cout << "vier Kinder in v'" << endl;
+			if (DEBUG) cout << "vier Kinder in v'" << endl;
 			if (vStrich->first->getAngle() > v2->getAngle()) // append absolutly left, v1 will be first, v2 the second child
 			{
+				if (DEBUG) cout << "in normalizeTreeAdd: Case 1" << endl; 
 				vStrich->third = vStrich->first;
 				vStrich->third->whichChildIam = 3;
 				vStrich->fourth = vStrich->second;
@@ -355,6 +397,7 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 			}
 			else if (vStrich->second->getAngle() < v1->getAngle()) // append absolutly right, v1 will be third, v2 the fourth child
 			{
+				if (DEBUG) cout << "in normalizeTreeAdd: Case 2" << endl; 
 				vStrich->third = v1;
 				v1->whichChildIam = 3;
 				vStrich->fourth = v2;
@@ -363,6 +406,7 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 			else if (vStrich->first->getAngle() < v1->getAngle()
 				     && vStrich->second->getAngle() < v2->getAngle()) // v1 will be the second and v2 the fourth child
 			{
+				if (DEBUG) cout << "in normalizeTreeAdd: Case 3" << endl; 
 				vStrich->third = vStrich->second;
 				vStrich->third->whichChildIam = 3;
 				vStrich->second = v1;
@@ -373,6 +417,7 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 			else if (vStrich->first->getAngle() < v1->getAngle()
 				     && vStrich->second->getAngle() > v2->getAngle()) // v1 will be the second and v2 the third child
 			{
+				if (DEBUG) cout << "in normalizeTreeAdd: Case 4" << endl; 	
 				vStrich->third = vStrich->second;
 				vStrich->third->whichChildIam = 3;
 				vStrich->second = v1;
@@ -383,6 +428,7 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 			else if (vStrich->first->getAngle() > v1->getAngle()
 				     && vStrich->second->getAngle() > v2->getAngle()) // v1 will be the first and v2 the third child
 			{
+				if (DEBUG) cout << "in normalizeTreeAdd: Case 5" << endl; 	
 				vStrich->fourth = vStrich->second;
 				vStrich->fourth->whichChildIam = 4;
 				vStrich->second = vStrich->first;
@@ -395,6 +441,7 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 			else if (vStrich->first->getAngle() > v1->getAngle()
 				     && vStrich->second->getAngle() < v2->getAngle()) // v1 will be the first and v2 the fourth child
 			{
+				if (DEBUG) cout << "in normalizeTreeAdd: Case 6" << endl; 	
 				vStrich->third = vStrich->second;
 				vStrich->third->whichChildIam = 3;
 				vStrich->second = vStrich->first;
@@ -407,6 +454,7 @@ void TwoThreeTree::normalizeTreeAdd(TreeElement * v)
 			v1->parent = vStrich;
 			v2->parent = vStrich;
 			vStrich->numberChilds = 4;
+			if (DEBUG) cout << "in normalizeTreeAdd: numberChilds in vStrich=4" << endl;
 			adaptKeys(vStrich,vStrich->fourth->getAngle());
 			normalizeTreeAdd(vStrich);
 		}
@@ -450,7 +498,7 @@ TreeElement * TwoThreeTree::searchAngle(TreeElement * r, int angle, bool * found
 			else if (r->first->getAngle() > angle) // y1 > x
 				return r->first;
 		}
-		else if ((r->first->getAngle() >= angle || r->numberChilds == 1) && r != r->first) // x <= y1
+		else if (r->first->getAngle() >= angle || r->numberChilds == 1) // x <= y1
 			return searchAngle(r->first, angle, founded);
 		
 	if (r->second != 0) 
@@ -465,12 +513,12 @@ TreeElement * TwoThreeTree::searchAngle(TreeElement * r, int angle, bool * found
 			else if (r->second->getAngle() > angle) // y2 > x
 				return r->second;
 		}
-		else if ((r->second->getAngle() >= angle || r->numberChilds == 2) && r != r->second)
+		else if (r->second->getAngle() >= angle || r->numberChilds == 2)
 			return searchAngle(r->second, angle, founded);
 	}
 	else
 	{
-		//if (DEBUG) cout << "zweites Blatt ist 0" << endl;
+		if (DEBUG) cout << "zweites Blatt ist 0" << endl;
 		return r->first;
 	}
 	
@@ -486,12 +534,12 @@ TreeElement * TwoThreeTree::searchAngle(TreeElement * r, int angle, bool * found
 			else 
 				return r->third; // sonst
 		}
-		else  if(r != r->third)
+		else 
 			return searchAngle(r->third, angle, founded); // sonst
 	}
 	else
 	{
-		//if (DEBUG) cout << "drittes Blatt ist 0" << endl;
+		if (DEBUG) cout << "drittes Blatt ist 0" << endl;
 		return r->second;
 	}
 }
@@ -508,7 +556,7 @@ TreeElement * TwoThreeTree::searchAngle(TreeElement * r, int angle, bool * found
 */
 void TwoThreeTree::deleteAngle(int angle)
 {
-	//if (DEBUG) cout << "Zu loeschendes Element: angle=" << angle << endl;
+	if (DEBUG) cout << "Zu loeschendes Element: angle=" << angle << endl;
 	
 	TreeElement * found;
 	bool founded;
@@ -516,7 +564,7 @@ void TwoThreeTree::deleteAngle(int angle)
 	found = searchAngle(angle, &founded);
 	if (!founded)
 	{
-		//cout << "zu loeschendes Element mit angle= " << angle << " nicht vorhanden!" << endl;
+		cout << "zu loeschendes Element mit angle= " << angle << " nicht vorhanden!" << endl;
 		return;
 	}
 	else //bestimme den Vater v des Blatts mit dem Schlüssel x und lösche dieses Blatt
@@ -540,7 +588,7 @@ void TwoThreeTree::deleteAngle(int angle)
 		v->third = 0;
 		
 		v->numberChilds--;
-		//if (DEBUG) cout << "nun NumberChilds von v=" << v->numberChilds << endl;
+		if (DEBUG) cout << "nun NumberChilds von v=" << v->numberChilds << endl;
 		
 		found->last->next = found->next;
 		if (found->next != 0)
@@ -570,7 +618,7 @@ void TwoThreeTree::normalizeTreeDel(TreeElement * v)
 	{
 	case 1: // then the brother of v is the second in vStrich, but v the first
 	{
-		//if (DEBUG) cout << "der 2. Bruder wird geprueft numberChilds=" << vStrich->second->numberChilds << endl;
+		if (DEBUG) cout << "der 2. Bruder wird geprueft numberChilds=" << vStrich->second->numberChilds << endl;
 		
 		if (vStrich->second != 0 && vStrich->second->numberChilds == 3) //falls ja, stehle einen Sohn vom Bruder, mache ihn zu einem Sohn von v
 		{
@@ -591,7 +639,7 @@ void TwoThreeTree::normalizeTreeDel(TreeElement * v)
 	}
 	case 2: // here v has two brothers, the first and possibly the third
 	{
-		//if (DEBUG) cout << "der 1. Bruder wird geprueft numberChilds=" << vStrich->first->numberChilds << endl;
+		if (DEBUG) cout << "der 1. Bruder wird geprueft numberChilds=" << vStrich->first->numberChilds << endl;
 		
 		if (vStrich->first->numberChilds == 3) //falls ja, stehle einen Sohn vom Bruder, mache ihn zu einem Sohn von v
 		{
@@ -609,7 +657,7 @@ void TwoThreeTree::normalizeTreeDel(TreeElement * v)
 		else if (vStrich->third != 0)
 			if (vStrich->third->numberChilds == 3)
 			{
-				//if (DEBUG) cout << "der 3. Bruder hat 3 Kinder" << endl;
+				if (DEBUG) cout << "der 3. Bruder hat 3 Kinder" << endl;
 				v->second = vStrich->third->first;
 				v->second->whichChildIam = 2;
 				v->second->parent = v;
@@ -627,7 +675,7 @@ void TwoThreeTree::normalizeTreeDel(TreeElement * v)
 	}
 	case 3: // then v's brother is the second in vStrich, but v is the third in vStrich
 	{
-		//if (DEBUG) cout << "der 2. Bruder wird geprueft numberChilds=" << vStrich->second->numberChilds << endl;
+		if (DEBUG) cout << "der 2. Bruder wird geprueft numberChilds=" << vStrich->second->numberChilds << endl;
 		
 		if (vStrich->second != 0 && vStrich->second->numberChilds == 3) //falls ja, stehle einen Sohn vom Bruder, mache ihn zu einem Sohn von v
 		{
@@ -652,7 +700,7 @@ void TwoThreeTree::normalizeTreeDel(TreeElement * v)
 	{
 	case 1:
 	{
-		//if (DEBUG) cout << "verschmelze v mit rechtem Bruder" << endl;
+		if (DEBUG) cout << "verschmelze v mit rechtem Bruder" << endl;
 	
 		vStrich->first = vStrich->second;
 		vStrich->first->whichChildIam = 1;
@@ -675,7 +723,7 @@ void TwoThreeTree::normalizeTreeDel(TreeElement * v)
 	}
 	case 2:
 	{
-		//if (DEBUG) cout << "verschmelze v mit linkem Bruder" << endl;
+		if (DEBUG) cout << "verschmelze v mit linkem Bruder" << endl;
 			
 		vStrich->second = vStrich->third;
 		if (vStrich->second != 0)
@@ -692,7 +740,7 @@ void TwoThreeTree::normalizeTreeDel(TreeElement * v)
 	}
 	case 3:
 	{
-		//if (DEBUG) cout << "verschmelze v mit linkem Bruder" << endl;
+		if (DEBUG) cout << "verschmelze v mit linkem Bruder" << endl;
 			
 		vStrich->third = 0;
 		vStrich->numberChilds--;
@@ -705,13 +753,13 @@ void TwoThreeTree::normalizeTreeDel(TreeElement * v)
 	}
 	} // end switch
 	
-	//if (DEBUG) cout << "Anzahl der Kinder in v' =" << vStrich->numberChilds << endl;
+	if (DEBUG) cout << "Anzahl der Kinder in v' =" << vStrich->numberChilds << endl;
 	
 	if (vStrich->numberChilds < 2) // falls v‘ einen Sohn hat, setze rekursiv fort (falls v‘ die Wurzel ist, so lösche v‘)
 	{
 		if (vStrich->parent == 0) // falls v‘ die Wurzel ist, so lösche v‘
 		{
-			//if (DEBUG) cout << "jetzt sind wir in der Wurzel" << endl;
+			if (DEBUG) cout << "jetzt sind wir in der Wurzel" << endl;
 
 			root = vStrich->first;
 			root->parent = 0;
@@ -727,7 +775,7 @@ void TwoThreeTree::adaptKeys(TreeElement * p, int angle)
 	if (p->getAngle() < angle)
 		p->setAngle(angle);
 	
-	if (p->parent != 0 && p != p->parent)
+	if (p->parent != 0)
 		adaptKeys(p->parent, angle);
 }
 
@@ -736,29 +784,29 @@ TreeElement * TwoThreeTree::findNextLeaf(TreeElement * source)
 	return source->next;
 }
 
-void TwoThreeTree::browse(TreeElement * te, int tab)
-{
+void TwoThreeTree::browse(TreeElement * te, int tab, std::ofstream& outFile)
+{	
 	if (te == 0) return;
 	
 	if (te->isLeaf())
 	{
-		te->browseLeaf(tab);
+		te->browseLeaf(tab, outFile);
 		return;
 	}
 
 	if (te->first != 0)
-		browse(te->first, tab+8);
+		browse(te->first, tab+8, outFile);
 		
-	te->browse(tab);
+	te->browse(tab, outFile);
 	
 	if (te->second != 0)
-		browse(te->second, tab+8);
+		browse(te->second, tab+8, outFile);
 	else
-		cout << setw(tab+8) << setfill(' ') << " " << " nul\n";
-	cout << endl;	
+		outFile << setw(tab+8) << setfill(' ') << " " << " nul\n";
+	outFile << endl;	
 	
 	if (te->third != 0) 
-		browse(te->third, tab+8);
+		browse(te->third, tab+8, outFile);
 	else
-		cout << setw(tab+8) << setfill(' ') << " " << " nul\n";
+		outFile << setw(tab+8) << setfill(' ') << " " << " nul\n";
 }

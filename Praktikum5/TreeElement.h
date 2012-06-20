@@ -11,38 +11,42 @@ d) jeder innere Knoten enthält den größten Schlüssel, der in dem an
 diesem Knoten beginnenden Teilbaum gespeichert ist
 */
 #pragma once
-class TreeElement
+#include <iostream>
+#include <fstream>
+
+namespace Tree
 {
-public:
-	TreeElement();
-	TreeElement(int angle, int edge);
-	~TreeElement(void){}
 
-	int getAngle();
-	int getEdge();
-	void setAngle(int angle);
-	void setEdge(int edge);
-	void browse(int tab);
-	void browseLeaf(int tab);
+	class TreeElement{
 
-private:
-	TreeElement * first;
-	TreeElement * second;
-	TreeElement * third;
-	TreeElement * fourth;
-	TreeElement * parent;
-	TreeElement * last;
-	TreeElement * next;
+		public:
+			TreeElement();
+			TreeElement(int angle, int edge);
+			~TreeElement(void){}
 
-	int angle;
-	int edge;
+			int getAngle();
+			int getEdge();
+			void setAngle(int angle);
+			void setEdge(int edge);
+			void browse(int tab, std::ofstream& outFile);
+			void browseLeaf(int tab, std::ofstream& outFile);
 
-	// only for a better code
-	int numberChilds;
-	int whichChildIam;
+		public:
+			TreeElement * first;
+			TreeElement * second;
+			TreeElement * third;
+			TreeElement * fourth;
+			TreeElement * parent;
+			TreeElement * last;
+			TreeElement * next;
 
-	bool isLeaf();
+			int angle;
+			int edge;
 
-friend class TwoThreeTree;
-};
+			// only for a better code
+			int numberChilds;
+			int whichChildIam;
 
+			bool isLeaf();
+	};
+}

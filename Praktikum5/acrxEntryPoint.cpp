@@ -31,17 +31,20 @@
 
 #define PI 3.14159265358979323846
 
+using namespace std;
+using namespace Tree;
+
 //-----------------------------------------------------------------------------
 #define szRDS _RXST("CGCAD")
 
-typedef std::pair<AcGePoint3d, AcGePoint3d> Edge;
+typedef pair<AcGePoint3d, AcGePoint3d> Edge;
 
 //-----------------------------------------------------------------------------
 //----- ObjectARX EntryPoint
 //-----------------------------------------------------------------------------
 class CPraktikum5App : public AcRxArxApp {
 
-	public:
+																			public:
 	CPraktikum5App () : AcRxArxApp () {}
 
 	virtual AcRx::AppRetCode On_kInitAppMsg (void *pkt) {
@@ -72,6 +75,10 @@ class CPraktikum5App : public AcRxArxApp {
 	//-----------------------------------------------------------------------------
 	// Los gehts!
 	//-----------------------------------------------------------------------------
+	
+	//vector<AcGePoint3d> points;				// alle Punkte der Polyline p(0) bis p(n-1)
+	//vector<TwoThreeTree> trees;				// zu jedem Punkt ein Tree
+	
 	static void CGCADPraktikum5triangularize(void)
 	{
 		struct resbuf polyline;
@@ -84,6 +91,7 @@ class CPraktikum5App : public AcRxArxApp {
 
 	static void Greedy(struct resbuf* polylineFilter)
 	{
+		
 		AcCmColor color;
 		color.setRGB(0,0,255);
 		createLayer(_T("trianguliert"),color);
@@ -106,12 +114,10 @@ class CPraktikum5App : public AcRxArxApp {
 			// gib mir die Polyline
 			AcDbPolyline* polyline = (AcDbPolyline*)tmp;
 			
-			std::vector<AcGePoint3d> points;				// alle Punkte der Polyline p0-p(n-1)
-			std::vector<TwoThreeTree> trees;				// zu jedem Punkt ein Tree
+			// global gesetzt
+			vector<AcGePoint3d> points;				// alle Punkte der Polyline p0-p(n-1)
+			vector<TwoThreeTree> trees;				// zu jedem Punkt ein Tree
 						
-
-			// points = alle Knoten
-			// tree = Speichenstern für jeden point
 			for(int i = 0; i < polyline->numVerts(); i++)	// gehe alle Punkte durch 
 			{
 				AcGePoint3d pt;
@@ -132,6 +138,9 @@ class CPraktikum5App : public AcRxArxApp {
 			}
 
 			polyline->close();
+
+			// points = alle Knoten der Polyline
+			// tree = Speichenstern für jeden point (mit 0 & 360° initialisiert)
 
 			addOuterAngles(points, trees);
 
@@ -317,11 +326,15 @@ class CPraktikum5App : public AcRxArxApp {
 		}
 	}
 
-	static void addOuterAngles(std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &trees)
-	{
+	static void addOuterAngles(std::vector<AcGePoint3d> &points, std::vector<TwoThreeTree> &trees){
+		//----------------------------------------------------------------------------------------
+		// bestimmt die anfangs und endwinkel eines knotens und fügt sie zu trees hinzu
+		//----------------------------------------------------------------------------------------
+
 		for(int i = 0; i < points.size(); i++)
 		{
-			int previous = i - 1;
+															
+						int previous = i - 1;
 			int next = i + 1;
 			if(previous < 0)
 				previous += points.size();
@@ -329,15 +342,25 @@ class CPraktikum5App : public AcRxArxApp {
 				next = 0;
 
 			int angle[2];
-			angle[0] = (int)(atan2(points[previous].y - points[i].y, points[previous].x - points[i].x) * 180 / PI);
-			angle[1] = (int)(atan2(points[next].y - points[i].y, points[next].x - points[i].x) * 180 / PI);
+															// previous	= kante davor
+															// next		= kante danach
+															// angle[2]	= winkel von previous = angle[0] und von next = angle[1]
 
-			angle[0] < 0 ? angle[0] += 360: angle[0];
-			angle[1] < 0 ? angle[1] += 360: angle[1];
-			acutPrintf(_T("points[i]: %d startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
+			angle[0] = getAngle(points, i, previous);		// angle[0] = start winkel
+			angle[1] = getAngle(points, i, next);			// angle[1] = end winkel
+			
+															
+			angle[0] < 0 ? angle[0] += 360: angle[0];		// atan2 liefert zahlen zwischen (-180) - (180)...
+			angle[1] < 0 ? angle[1] += 360: angle[1];		// ... daher +=360 wenn negativ
+
+			//acutPrintf(_T("points[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
 			trees[i].setBlockingEdge(angle[0], angle[1], -1);
 		}
-		acutPrintf(_T("________________________________"));
+		//acutPrintf(_T("________________________________"));
+	}
+
+	static int getAngle(std::vector<AcGePoint3d> &points, int& current, int& neighbour){
+		 return (int)(atan2(points[neighbour].y - points[current].y, points[neighbour].x - points[current].x) * 180 / PI);
 	}
 } ;
 
