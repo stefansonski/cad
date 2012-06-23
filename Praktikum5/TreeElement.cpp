@@ -19,8 +19,8 @@ TreeElement::TreeElement(int angle, int edge)
 {
 	this->angle = angle;
 	this->edge = edge;
-	first = second = third = fourth= parent = last = next = 0;
-	numberChilds = whichChildIam= 0;
+	first = second = third = fourth = parent = last = next = 0;
+	numberChilds = whichChildIam = 0;
 }
 
 int TreeElement::getAngle()

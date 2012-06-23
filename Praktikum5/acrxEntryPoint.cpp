@@ -93,13 +93,22 @@ class CPraktikum5App : public AcRxArxApp {
 	static void Greedy(){
 			
 			setPolyPoints();					// Es wird davon ausgegangen, dass tatsächlich eine Polyline existiert
-			setTrees();
+			setTrees();							// initialisiere für jeden Knoten einen Tree mit Winkel 360°
 			setOuterAngles();
 			setOuterEdges();
 			setInnerEdges();
 			sortInnerEdges();
+
 			createPolygons();
-		
+
+			housekeeping();
+	}
+
+	static void housekeeping() {
+		polyPoints.clear();
+		trees.clear();
+		outerEdges.clear();
+		innerEdges.clear();
 	}
 
 	static void setPolyPoints(){
@@ -242,25 +251,10 @@ class CPraktikum5App : public AcRxArxApp {
 
 	static void createPolygons()
 	{
-		//std::vector<Edge> outerEdges;
-		//std::vector<Edge> innerEdges;
 		std::vector<Edge> newEdges;
-		/*for(int i = 0; i < polyPoints.size(); i++)
-		{
-			for(int j = i + 1; j < polyPoints.size(); j++)
-			{
-				if(i + 1 == j || (i == 0 && j == polyPoints.size() - 1))
-					outerEdges.push_back(Edge(polyPoints[i], polyPoints[j]));
-				else
-					innerEdges.push_back(Edge(polyPoints[i], polyPoints[j]));
-			}
-		}*/
 
-
-		for(int i = 0; i < innerEdges.size() && newEdges.size() < polyPoints.size() - 3; i++)
-		{	
-			if(!isEdgeBlocked(innerEdges[i], polyPoints, trees))
-			{
+		for(int i = 0; i < innerEdges.size() && newEdges.size() < polyPoints.size() - 3; i++){	
+			if(!isEdgeBlocked(innerEdges[i], polyPoints, trees)){
 				appendEdge(innerEdges[i], newEdges, polyPoints, trees);					
 			}
 		}
@@ -272,19 +266,16 @@ class CPraktikum5App : public AcRxArxApp {
 	{
 		for(int j = 0; j < polyPoints.size(); j++)
 		{
-			if(polyPoints[j] == edge.first)
-			{
+			if(polyPoints[j] == edge.first){
 				int angle = (int)((atan2(edge.second.y - polyPoints[j].y,edge.second.x - polyPoints[j].x)) * 180 / PI);
 				angle < 0 ? angle += 360: angle;
 
 				int edge = trees[j].getEdgeForAngle(angle);
 				acutPrintf(_T("polyPoints[i]: %d angle: %d \n"), j, angle);
-				if(edge != 0)
-				{
+				if(edge != 0){
 					return true;
 				}
-				else
-				{
+				else {
 					return false;
 				}
 			}
@@ -313,11 +304,19 @@ class CPraktikum5App : public AcRxArxApp {
 				int diff = tmp - angle[0];
 				if(diff > 180)
 				{
+					angle[0] -= 1;
+					angle[1] += 1;
+					angle[0] < 0 ? angle[0] += 360: angle[0];
+					angle[1] > 359 ? angle[1] -= 360: angle[1];
 					acutPrintf(_T("polyPoints[i]: %d startangle: %d endangle: %d\n"), i, angle[1], angle[0]);
 					trees[i].setBlockingEdge(angle[1], angle[0], edges.size());
 				}
 				else
 				{
+					angle[0] += 1;
+					angle[1] -= 1;
+					angle[0] > 359 ? angle[0] -= 360: angle[0];
+					angle[1] < 0 ? angle[1] += 360: angle[1];
 					acutPrintf(_T("polyPoints[i]: %d startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
 					trees[i].setBlockingEdge(angle[0], angle[1], edges.size());
 				}
@@ -364,7 +363,7 @@ class CPraktikum5App : public AcRxArxApp {
 				pBlockTableRecord->appendAcDbEntity(line);
 				line->close();
 				ads_real result;
-				acedGetReal(_T("Block"), &result);
+				//acedGetReal(_T("Block"), &result);
 			}
 			pBlockTableRecord->close();
 
