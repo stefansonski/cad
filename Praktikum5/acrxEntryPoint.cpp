@@ -458,18 +458,24 @@ class CPraktikum5App : public AcRxArxApp {
 		crossPoint.y = crossPoint.y / crossPoint.z;
 		crossPoint.z = 1;
 
-		ads_real t;
+		ads_real innerT;
 		if(innerEdgeEndPoint.x - innerEdgeStartPoint.x != 0)
-			t = (crossPoint.x - innerEdgeStartPoint.x) / (innerEdgeEndPoint.x - innerEdgeStartPoint.x);
+			innerT = (crossPoint.x - innerEdgeStartPoint.x) / (innerEdgeEndPoint.x - innerEdgeStartPoint.x);
 		else if(innerEdgeEndPoint.y - innerEdgeStartPoint.y != 0)
-			t = (crossPoint.y - innerEdgeStartPoint.y) / (innerEdgeEndPoint.y - innerEdgeStartPoint.y);
+			innerT = (crossPoint.y - innerEdgeStartPoint.y) / (innerEdgeEndPoint.y - innerEdgeStartPoint.y);
 		
-		acutPrintf(_T(" t = %f\n"), t);
-		if(t > 1 || t < 0 || CompareDoubles(t, 1.0) || CompareDoubles(t, 0.0))
-			return false;
+		ads_real outerT;
+		if(outerEdgeEndPoint.x - outerEdgeStartPoint.x != 0)
+			outerT = (crossPoint.x - outerEdgeStartPoint.x) / (outerEdgeEndPoint.x - outerEdgeStartPoint.x);
+		else if(outerEdgeEndPoint.y - outerEdgeStartPoint.y != 0)
+			outerT = (crossPoint.y - outerEdgeStartPoint.y) / (outerEdgeEndPoint.y - outerEdgeStartPoint.y);
+		
+		//acutPrintf(_T(" t = %f\n"), t);
+		if(innerT > 0.0 && innerT < 1.0 && outerT > 0.0 && outerT < 1.0)
+			return true;
 		//else
 
-		return true;
+		return false;
 	}
 
 	static AcGeVector3d crossProduct(AcGeVector3d &a, AcGeVector3d &b)
