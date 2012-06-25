@@ -52,6 +52,9 @@ vector<AcGePoint3d> polyPoints;					// alle Punkte der Polyline p(0) bis p(n-1)
 vector<TwoThreeTree> trees;						// zu jedem Punkt ein Tree
 vector<Edge> outerEdges;
 vector<Edge> innerEdges;
+vector<AcGePoint3d> intersections;
+vector<AcGePoint3d> finalIntersections;
+AcGePoint3d intersectionPoint;
 
 class CPraktikum5App : public AcRxArxApp {
 
@@ -102,6 +105,9 @@ class CPraktikum5App : public AcRxArxApp {
 
 			createPolygons();
 
+			drawIntersections();
+			drawFinalIntersections();
+
 			housekeeping();
 	}
 
@@ -119,8 +125,14 @@ class CPraktikum5App : public AcRxArxApp {
 		polylineFilter.rbnext = NULL;
 		
 		AcCmColor color;
-		color.setRGB(0,0,255);
+		color.setRGB(0,150,255);
 		createLayer(_T("trianguliert"),color);
+
+		color.setRGB(255,0,0);
+		createLayer(_T("crosspoints"),color);
+
+		color.setRGB(0,255,0);
+		createLayer(_T("finalCrosspoints"),color);
 
 		ads_name ssname;
 		long length = 0;
@@ -267,40 +279,7 @@ class CPraktikum5App : public AcRxArxApp {
 		drawPolygons(newEdges, outerEdges);
 	}
 
-	static bool isEdgeBlocked(Edge &innerEdge, std::vector<AcGePoint3d> &polyPoints, std::vector<TwoThreeTree> &trees)
-	{
-		/*
-		 * suche den anfangspunkt von innerEdge.first
-		 * und untersuche ob die innerEdge im blockingAngle des Anfangspunktes liegt
-		 */
-		for(int i = 0; i < polyPoints.size(); i++){
-			
-			if(polyPoints[i] == innerEdge.first){
 
-				// gib mir den Winkel der innenkante
-				int angle = (int)((atan2(innerEdge.second.y - polyPoints[i].y,innerEdge.second.x - polyPoints[i].x)) * 180 / PI);
-				angle < 0 ? angle += 360: angle;
-
-				/* testet am anfangspunkt ob winkel für innerEdge zulässig ist
-				 * gibt 0 zurück wenn der Winkel noch frei ist
-				 */
-				int edge = trees[i].getEdgeForAngle(angle);						
-				if(edge != 0){
-					return true;
-				}
-			}
-		}
-
-		// wenn Winkel noch frei kann noch ein Schnitt zwischen den Außenkanten vorliegen
-		for(int i = 0; i < outerEdges.size(); i++) {
-			if(innerEdge.first != outerEdges[i].first && innerEdge.first != outerEdges[i].second && innerEdge.second != outerEdges[i].first && innerEdge.second != outerEdges[i].second) {
-				if(hasIntersection(innerEdge, outerEdges[i])) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
 
 	static void appendEdge(Edge edge, std::vector<Edge> &newEdges, std::vector<AcGePoint3d> &polyPoints, std::vector<TwoThreeTree> &trees){
 		
@@ -385,7 +364,7 @@ class CPraktikum5App : public AcRxArxApp {
 		for(int j = 0; j < innerEdges.size(); j++)
 		{
 			line = new AcDbLine(innerEdges[j].first, innerEdges[j].second);
-			line->setLayer(_T("TRIANG"));
+			line->setLayer(_T("trianguliert"));
 			pBlockTableRecord->appendAcDbEntity(line);
 			line->close();
 			ads_real result;
@@ -394,8 +373,98 @@ class CPraktikum5App : public AcRxArxApp {
 
 
 		pBlockTableRecord->close();
+	}
+
+	static void drawIntersectionLines(AcGePoint3d startPoint, AcGePoint3d endPoint){
+		
+		//database connect
+		AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
+
+		//blocktable init
+		AcDbBlockTable* pBlockTable = NULL;
+		pDB->getSymbolTable(pBlockTable, AcDb::kForRead);
+
+		//blocktable record init
+		AcDbBlockTableRecord* pBlockTableRecord = NULL;
+		pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
+
+		pBlockTable->close();
+
+		AcDbLine* line;
+		for(int j = 0; j < innerEdges.size(); j++)
+		{
+			line = new AcDbLine(startPoint, endPoint);
+			line->setLayer(_T("finalCrosspoints"));
+			pBlockTableRecord->appendAcDbEntity(line);
+			line->close();
+			ads_real result;
+			//acedGetReal(_T("Block"), &result);
+		}
+
+
+		pBlockTableRecord->close();
+	}
+
+	static void drawIntersections(){
+		
+		//database connect
+		AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
+
+		//blocktable init
+		AcDbBlockTable* pBlockTable = NULL;
+		pDB->getSymbolTable(pBlockTable, AcDb::kForRead);
+
+		//blocktable record init
+		AcDbBlockTableRecord* pBlockTableRecord = NULL;
+		pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
+
+		pBlockTable->close();
 
 		
+		AcDbCircle* circle;
+		for(int i = 0; i < intersections.size(); i++)
+		{
+			circle = new AcDbCircle(intersections[i],AcGeVector3d(0,0,1), 5);
+			circle->setLayer(_T("crosspoints"));
+			pBlockTableRecord->appendAcDbEntity(circle);
+			circle->close();
+			//ads_real result;
+			//acedGetReal(_T("Block"), &result);
+		}
+
+
+		pBlockTableRecord->close();
+	}
+
+	static void drawFinalIntersections(){
+		
+		//database connect
+		AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
+
+		//blocktable init
+		AcDbBlockTable* pBlockTable = NULL;
+		pDB->getSymbolTable(pBlockTable, AcDb::kForRead);
+
+		//blocktable record init
+		AcDbBlockTableRecord* pBlockTableRecord = NULL;
+		pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
+
+		pBlockTable->close();
+
+		
+		AcDbCircle* circle;
+		for(int i = 0; i < finalIntersections.size(); i++)
+		{
+			circle = new AcDbCircle(finalIntersections[i],AcGeVector3d(0,0,1), 5);
+			circle->setLayer(_T("finalCrosspoints"));
+			pBlockTableRecord->appendAcDbEntity(circle);
+			circle->close();
+			//ads_real result;
+			//acedGetReal(_T("Block"), &result);
+		}
+
+
+		pBlockTableRecord->close();
 	}
 
 	static void setOuterAngles(){
@@ -434,8 +503,44 @@ class CPraktikum5App : public AcRxArxApp {
 		 return (int)(atan2(polyPoints[neighbour].y - polyPoints[current].y, polyPoints[neighbour].x - polyPoints[current].x) * 180 / PI);
 	}
 
+	static bool isEdgeBlocked(Edge &innerEdge, std::vector<AcGePoint3d> &polyPoints, std::vector<TwoThreeTree> &trees){
+		/*
+		 * suche den anfangspunkt von innerEdge.first
+		 * und untersuche ob die innerEdge im blockingAngle des Anfangspunktes liegt
+		 */
+		for(int i = 0; i < polyPoints.size(); i++){
+			
+			if(polyPoints[i] == innerEdge.first){
+
+				// gib mir den Winkel der innenkante
+				int angle = (int)((atan2(innerEdge.second.y - polyPoints[i].y,innerEdge.second.x - polyPoints[i].x)) * 180 / PI);
+				angle < 0 ? angle += 360: angle;
+
+				/* testet am anfangspunkt ob winkel für innerEdge zulässig ist
+				 * gibt 0 zurück wenn der Winkel noch frei ist
+				 */
+				int edge = trees[i].getEdgeForAngle(angle);						
+				if(edge != 0){
+					return true;
+				}
+			}
+		}
+
+		// wenn Winkel noch frei kann noch ein Schnitt zwischen den Außenkanten vorliegen
+		// HIER LIEGT DAS PROBLEM!
+		for(int i = 0; i < outerEdges.size(); i++) {
+			if(innerEdge.first != outerEdges[i].first && innerEdge.first != outerEdges[i].second && innerEdge.second != outerEdges[i].first && innerEdge.second != outerEdges[i].second) {
+				if(hasIntersection(innerEdge, outerEdges[i])) {
+						return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	static bool hasIntersection(Edge &innerEdge, Edge &outerEdge){
 		
+		// setze homogene koordinaten für schnelleren schnittpunkttest
 		AcGePoint3d innerEdgeStartPoint(innerEdge.first);
 		innerEdgeStartPoint.z = 1;
 		AcGePoint3d innerEdgeEndPoint(innerEdge.second);
@@ -446,45 +551,65 @@ class CPraktikum5App : public AcRxArxApp {
 		AcGePoint3d outerEdgeEndPoint(outerEdge.second);
 		outerEdgeEndPoint.z = 1;
 
-		AcGeVector3d innerEdgeNormal = crossProduct(innerEdgeStartPoint.asVector(), innerEdgeEndPoint.asVector());
-		AcGeVector3d outerEdgeNormal = crossProduct(outerEdgeStartPoint.asVector(), outerEdgeEndPoint.asVector());
+		// normale = kreuzprodukt 2er punkte auf der geraden
+		AcGeVector3d innerEdgeNormal = crossProduct(innerEdgeStartPoint, innerEdgeEndPoint);
+		AcGeVector3d outerEdgeNormal = crossProduct(outerEdgeStartPoint, outerEdgeEndPoint);
 
 		AcGeVector3d crossPoint = crossProduct(outerEdgeNormal, innerEdgeNormal);
 
-		if(crossPoint.z == 0)
+		if(crossPoint.z == 0){
 			return false;
+		}
 
+		// homogener schnittpunkt mit z = 1
 		crossPoint.x = crossPoint.x / crossPoint.z;
 		crossPoint.y = crossPoint.y / crossPoint.z;
 		crossPoint.z = 1;
 
-		ads_real innerT;
-		if(innerEdgeEndPoint.x - innerEdgeStartPoint.x != 0)
-			innerT = (crossPoint.x - innerEdgeStartPoint.x) / (innerEdgeEndPoint.x - innerEdgeStartPoint.x);
-		else if(innerEdgeEndPoint.y - innerEdgeStartPoint.y != 0)
-			innerT = (crossPoint.y - innerEdgeStartPoint.y) / (innerEdgeEndPoint.y - innerEdgeStartPoint.y);
-		
-		ads_real outerT;
-		if(outerEdgeEndPoint.x - outerEdgeStartPoint.x != 0)
-			outerT = (crossPoint.x - outerEdgeStartPoint.x) / (outerEdgeEndPoint.x - outerEdgeStartPoint.x);
-		else if(outerEdgeEndPoint.y - outerEdgeStartPoint.y != 0)
-			outerT = (crossPoint.y - outerEdgeStartPoint.y) / (outerEdgeEndPoint.y - outerEdgeStartPoint.y);
-		
-		//acutPrintf(_T(" t = %f\n"), t);
-		if(innerT > 0.0 && innerT < 1.0 && outerT > 0.0 && outerT < 1.0)
-			return true;
-		//else
+		intersections.push_back(AcGePoint3d(crossPoint.x, crossPoint.y, 0));
 
-		return false;
+		ads_real t;
+		if(innerEdgeEndPoint.x - innerEdgeStartPoint.x != 0)
+			t = (crossPoint.x - innerEdgeStartPoint.x) / (innerEdgeEndPoint.x - innerEdgeStartPoint.x);
+		else if(innerEdgeEndPoint.y - innerEdgeStartPoint.y != 0)
+			t = (crossPoint.y - innerEdgeStartPoint.y) / (innerEdgeEndPoint.y - innerEdgeStartPoint.y);
+		
+
+		//acutPrintf(_T(" t = %f\n"), t);
+		
+		// liegt Punkt auf der innerEdge && liegt der Punkt nicht im Polygon, dann gibts einen Schnitt mit einer Außenkante
+		if((t > 1 || t < 0 || CompareDoubles(t, 1.0) || CompareDoubles(t, 0.0))){		
+			return false;
+		}
+
+		finalIntersections.push_back(AcGePoint3d(crossPoint.x, crossPoint.y, 0));
+		drawIntersectionLines(innerEdgeStartPoint, innerEdgeEndPoint);
+		drawIntersectionLines(outerEdgeStartPoint, outerEdgeEndPoint);
+
+		
+
+		return true;
 	}
 
-	static AcGeVector3d crossProduct(AcGeVector3d &a, AcGeVector3d &b)
-	{
+	/* wird nicht benötigt
+	static bool isInPolygon(AcGeVector3d &crossPoint){
+		
+		Edge xToInf;	// Strecke von crossPoint nach rechts bis 10.000
+		AcGePoint3d inf(10.000,crossPoint.y,0);
+		return true;
+	}
+	*/
+
+	static AcGeVector3d crossProduct(AcGeVector3d &a, AcGeVector3d &b){
 		AcGeVector3d result;
 		result.x = a.y * b.z - a.z * b.y;
 		result.y = a.z * b.x - a.x * b.z;
 		result.z = a.x * b.y - a.y * b.x;
 		return result;
+	}
+
+	static AcGeVector3d crossProduct(AcGePoint3d &a, AcGePoint3d &b){
+		return crossProduct(a.asVector(), b.asVector());
 	}
 
 	static bool CompareDoubles(double a, double b) {
