@@ -181,8 +181,40 @@ class CPraktikum5App : public AcRxArxApp {
 		for(int i=0; i < polyPoints.size(); i++){
 			TwoThreeTree tree;							
 			tree.insertAngle(360,0);					// Tree init für jeden Punkt
-			trees.push_back(tree);						// leg für jeden Punkt Tree mit 0°-360° an
+			trees.push_back(tree);						// leg für jeden Punkt Tree mit 360° an
 		}
+	}
+
+	static void setOuterAngles(){
+		//----------------------------------------------------------------------------------------
+		// bestimmt die anfangs und endwinkel eines knotens und fügt sie zu trees hinzu
+		//----------------------------------------------------------------------------------------
+
+		for(int i = 0; i < polyPoints.size(); i++){
+															
+			int previous = i - 1;
+			int next = i + 1;
+			if(previous < 0)
+				previous += polyPoints.size();
+			if(next >= polyPoints.size())
+				next = 0;
+
+			int angle[2];
+															// previous	= kante davor
+															// next		= kante danach
+															// angle[2]	= winkel von previous = angle[0] und von next = angle[1]
+
+			angle[0] = getAngle(polyPoints, i, previous);	// angle[0] = start winkel
+			angle[1] = getAngle(polyPoints, i, next);		// angle[1] = end winkel
+			
+															
+			angle[0] < 0 ? angle[0] += 360: angle[0];		// atan2 liefert zahlen zwischen (-180) - (180)...
+			angle[1] < 0 ? angle[1] += 360: angle[1];		// ... daher +=360 wenn negativ
+			
+			//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
+			trees[i].setBlockingEdge(angle[0], angle[1], -1);
+		}
+		//acutPrintf(_T("________________________________"));
 	}
 
 	static void createLayer(const ACHAR* name, AcCmColor &color)
@@ -279,32 +311,151 @@ class CPraktikum5App : public AcRxArxApp {
 		drawPolygons(newEdges, outerEdges);
 	}
 
-
-
 	static void appendEdge(Edge edge, std::vector<Edge> &newEdges, std::vector<AcGePoint3d> &polyPoints, std::vector<TwoThreeTree> &trees){
 		
 		// fügt die Kante zu newEdges hinzu
 		newEdges.push_back(edge);
 
 		/* setze im tree die blockingEdges 
-		 * wobei der Winkel von innerEdge[i] zu polyPoint[i] um 1° nach links und nach rechts reduziert wird
+		 * wobei der Winkel von innerEdge[i] zu polyPoint[i] um 1° reduziert wird
 		 * damit der Punkt selbst nicht fälschlicher weise auch geblockt wird
 		 */
 		for(int i = 0; i < trees.size(); i++){
 			if(edge.first != polyPoints[i] && edge.second != polyPoints[i]){
 				int angle[2];
+				
 				angle[0] = (int)(atan2(edge.first.y - polyPoints[i].y, edge.first.x - polyPoints[i].x) * 180 / PI);
 				angle[1] = (int)(atan2(edge.second.y - polyPoints[i].y, edge.second.x - polyPoints[i].x) * 180 / PI);
-
 				angle[0] < 0 ? angle[0] += 360: angle[0];
 				angle[1] < 0 ? angle[1] += 360: angle[1];
 
+				double distanceToEdgeFirst = polyPoints[i].distanceTo(edge.first);
+				double distanceToEdgeSecond = polyPoints[i].distanceTo(edge.second);
+
+				// Test ob bei aktuellem Knoten eine Kante vor der appendEdge liegt, wenn ja muss der Winkel verkleinert werden
+				for(int j = 0; j < outerEdges.size(); j++){
+					//angle[0] = Winkel zu IKS.first
+					//angle[1] = Winkel zu IKS.second
+					
+					if(hasIntersection(Edge(polyPoints[i], edge.first), outerEdges[j])){
+						
+						// Wenn die Distanz kleiner ist setze neuen Winkel
+						if(polyPoints[i].distanceTo(intersectionPoint) < distanceToEdgeFirst){
+
+							int closerAngle[2];
+							closerAngle[0] = (int)(atan2(outerEdges[j].first.y - polyPoints[i].y, outerEdges[j].first.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
+							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
+							
+							// Wenn sich der Winkel zwischen angle[0]-angle[1] befindet reduziere ihn
+							if(angle[0] > angle[1]){
+								if(angle[0] > closerAngle[0] && angle[0] < closerAngle[1]){
+									angle[0] = closerAngle[0];
+								}
+
+								if(angle[0] < closerAngle[0] && angle[0] > closerAngle[1]){
+									angle[0] = closerAngle[1];
+								}
+							}
+
+							if(angle[1] > angle[0]){
+								if(angle[1] > closerAngle[0] && angle[1] < closerAngle[1]){
+									angle[0] = closerAngle[0];
+								}
+
+								if(angle[1] < closerAngle[0] && angle[1] > closerAngle[1]){
+									angle[0] = closerAngle[1];
+								}
+							}
+
+							if(angle[0] < angle[1]){
+								if(angle[0] > closerAngle[0] && angle[0] < closerAngle[1]){
+									angle[0] = closerAngle[1];
+								}
+
+								if(angle[0] < closerAngle[0] && angle[0] > closerAngle[1]){
+									angle[0] = closerAngle[0];
+								}
+							}
+
+							if(angle[1] < angle[0]){
+								if(angle[1] > closerAngle[0] && angle[1] < closerAngle[1]){
+									angle[1] = closerAngle[1];
+								}
+
+								if(angle[1] < closerAngle[0] && angle[1] > closerAngle[1]){
+									angle[1] = closerAngle[0];
+								}
+							}
+						}
+					}
+					
+					if(hasIntersection(Edge(polyPoints[i], edge.second), outerEdges[j])){
+						
+						// Wenn die Distanz kleiner ist setze neuen Winkel
+						if(polyPoints[i].distanceTo(intersectionPoint) < distanceToEdgeSecond){
+
+							int closerAngle[2];
+							closerAngle[0] = (int)(atan2(outerEdges[j].first.y - polyPoints[i].y, outerEdges[j].first.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
+							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
+							
+							// Wenn sich der Winkel zwischen angle[0]-angle[1] befindet reduziere ihn
+							if(angle[0] > angle[1])																																									if(angle[0] > angle[1]){
+								if(angle[0] > closerAngle[0] && angle[0] < closerAngle[1]){
+									angle[0] = closerAngle[0];
+								}
+
+								if(angle[0] < closerAngle[0] && angle[0] > closerAngle[1]){
+									angle[0] = closerAngle[1];
+								}
+							}
+
+							if(angle[1] > angle[0]){
+								if(angle[1] > closerAngle[0] && angle[1] < closerAngle[1]){
+									angle[1] = closerAngle[0];
+								}
+
+								if(angle[1] < closerAngle[0] && angle[1] > closerAngle[1]){
+									angle[1] = closerAngle[1];
+								}
+							}
+
+							if(angle[0] < angle[1]){
+								if(angle[0] > closerAngle[0] && angle[0] < closerAngle[1]){
+									angle[0] = closerAngle[1];
+								}
+
+								if(angle[0] < closerAngle[0] && angle[0] > closerAngle[1]){
+									angle[0] = closerAngle[0];
+								}
+							}
+
+							if(angle[1] < angle[0]){
+								if(angle[1] > closerAngle[0] && angle[1] < closerAngle[1]){
+									angle[1] = closerAngle[1];
+								}
+
+								if(angle[1] < closerAngle[0] && angle[1] > closerAngle[1]){
+									angle[1] = closerAngle[0];
+								}
+							}
+						}
+					}
+					// Test hat die Strecke zwischen aktuellerKnoten-edge.first oder 
+					// aktuellerKnoten-edge.second schnitt mit andern Aussenkanten, die näher liegen
+
+				}
+				
+
 				int tmp = angle[1];
 				
-				if(angle[1] < angle[0]){
+				if(angle[0] > angle[1]){
 					tmp += 360;
 				}
-
+				
 				int diff = tmp - angle[0];
 				
 				if(diff > 180){
@@ -322,6 +473,22 @@ class CPraktikum5App : public AcRxArxApp {
 					//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
 					trees[i].setBlockingEdge(angle[0], angle[1], newEdges.size());
 				}
+
+				/*
+				if(angle[0] < angle[1]){
+					angle[0] += 1;
+					angle[1] -= 1;
+					angle[0] > 359 ? angle[0] -= 360: angle[0];
+					angle[1] < 0 ? angle[1] += 360: angle[1];
+					trees[i].setBlockingEdge(angle[0], angle[1], newEdges.size());	
+				} else if (angle[0] < angle[1]){ 
+					angle[0] -= 1;
+					angle[1] += 1;
+					angle[0] < 0 ? angle[0] += 360: angle[0];
+					angle[1] > 359 ? angle[1] -= 360: angle[1];
+					trees[i].setBlockingEdge(angle[1], angle[0], newEdges.size());
+				}*/
+
 			}
 		}
 	}
@@ -467,38 +634,6 @@ class CPraktikum5App : public AcRxArxApp {
 		pBlockTableRecord->close();
 	}
 
-	static void setOuterAngles(){
-		//----------------------------------------------------------------------------------------
-		// bestimmt die anfangs und endwinkel eines knotens und fügt sie zu trees hinzu
-		//----------------------------------------------------------------------------------------
-
-		for(int i = 0; i < polyPoints.size(); i++){
-															
-			int previous = i - 1;
-			int next = i + 1;
-			if(previous < 0)
-				previous += polyPoints.size();
-			if(next >= polyPoints.size())
-				next = 0;
-
-			int angle[2];
-															// previous	= kante davor
-															// next		= kante danach
-															// angle[2]	= winkel von previous = angle[0] und von next = angle[1]
-
-			angle[0] = getAngle(polyPoints, i, previous);	// angle[0] = start winkel
-			angle[1] = getAngle(polyPoints, i, next);		// angle[1] = end winkel
-			
-															
-			angle[0] < 0 ? angle[0] += 360: angle[0];		// atan2 liefert zahlen zwischen (-180) - (180)...
-			angle[1] < 0 ? angle[1] += 360: angle[1];		// ... daher +=360 wenn negativ
-			
-			//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
-			trees[i].setBlockingEdge(angle[0], angle[1], -1);
-		}
-		//acutPrintf(_T("________________________________"));
-	}
-
 	static int getAngle(std::vector<AcGePoint3d> &polyPoints, int& current, int& neighbour){
 		 return (int)(atan2(polyPoints[neighbour].y - polyPoints[current].y, polyPoints[neighbour].x - polyPoints[current].x) * 180 / PI);
 	}
@@ -566,29 +701,49 @@ class CPraktikum5App : public AcRxArxApp {
 		crossPoint.y = crossPoint.y / crossPoint.z;
 		crossPoint.z = 1;
 
-		intersections.push_back(AcGePoint3d(crossPoint.x, crossPoint.y, 0));
+		// 
+		// intersections.push_back(AcGePoint3d(crossPoint.x, crossPoint.y, 0));
 
-		ads_real t;
+		/*ads_real t;
 		if(innerEdgeEndPoint.x - innerEdgeStartPoint.x != 0)
 			t = (crossPoint.x - innerEdgeStartPoint.x) / (innerEdgeEndPoint.x - innerEdgeStartPoint.x);
 		else if(innerEdgeEndPoint.y - innerEdgeStartPoint.y != 0)
 			t = (crossPoint.y - innerEdgeStartPoint.y) / (innerEdgeEndPoint.y - innerEdgeStartPoint.y);
-		
-
-		//acutPrintf(_T(" t = %f\n"), t);
 		
 		// liegt Punkt auf der innerEdge && liegt der Punkt nicht im Polygon, dann gibts einen Schnitt mit einer Außenkante
 		if((t > 1 || t < 0 || CompareDoubles(t, 1.0) || CompareDoubles(t, 0.0))){		
 			return false;
 		}
 
-		finalIntersections.push_back(AcGePoint3d(crossPoint.x, crossPoint.y, 0));
-		drawIntersectionLines(innerEdgeStartPoint, innerEdgeEndPoint);
-		drawIntersectionLines(outerEdgeStartPoint, outerEdgeEndPoint);
+		*/
 
-		
+		ads_real innerT;
+        if(innerEdgeEndPoint.x - innerEdgeStartPoint.x != 0){
+                innerT = (crossPoint.x - innerEdgeStartPoint.x) / (innerEdgeEndPoint.x - innerEdgeStartPoint.x);
+		} else if(innerEdgeEndPoint.y - innerEdgeStartPoint.y != 0){
+                innerT = (crossPoint.y - innerEdgeStartPoint.y) / (innerEdgeEndPoint.y - innerEdgeStartPoint.y);
+		}
+               
+        ads_real outerT;
+        if(outerEdgeEndPoint.x - outerEdgeStartPoint.x != 0){
+                outerT = (crossPoint.x - outerEdgeStartPoint.x) / (outerEdgeEndPoint.x - outerEdgeStartPoint.x);
+		} else if(outerEdgeEndPoint.y - outerEdgeStartPoint.y != 0){
+                outerT = (crossPoint.y - outerEdgeStartPoint.y) / (outerEdgeEndPoint.y - outerEdgeStartPoint.y);
+		}
+               
+        //if((innerT > 1 || innerT < 0 || CompareDoubles(innerT, 1.0) || CompareDoubles(innerT, 0.0)) && (outerT > 1 || outerT < 0 || CompareDoubles(outerT, 1.0) || CompareDoubles(outerT, 0.0)) ){
+        
+		if((innerT > 0.0 && innerT < 1.0) && (outerT > 0.0 && outerT < 1.0)){
+			intersectionPoint = AcGePoint3d(crossPoint.x, crossPoint.y, 1);
+			return true;
+		}
+		//acutPrintf(_T(" t = %f\n"), t);
 
-		return true;
+		//finalIntersections.push_back(AcGePoint3d(crossPoint.x, crossPoint.y, 0));
+		//drawIntersectionLines(innerEdgeStartPoint, innerEdgeEndPoint);
+		//drawIntersectionLines(outerEdgeStartPoint, outerEdgeEndPoint);
+
+		return false;
 	}
 
 	/* wird nicht benötigt
