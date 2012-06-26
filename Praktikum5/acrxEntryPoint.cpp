@@ -46,6 +46,7 @@ using namespace std;
 // Typedef --------------------------------------------------------------------
 typedef pair<AcGePoint3d, AcGePoint3d> Edge;
 
+
 // Globale Variablen ----------------------------------------------------------
 vector<AcGePoint3d> polyPoints;					// alle Punkte der Polyline p(0) bis p(n-1)
 vector<TwoThreeTree> trees;						// zu jedem Punkt ein Tree
@@ -206,11 +207,15 @@ class CPraktikum5App : public AcRxArxApp {
 															
 			angle[0] < 0 ? angle[0] += 360: angle[0];		// atan2 liefert zahlen zwischen (-180) - (180)...
 			angle[1] < 0 ? angle[1] += 360: angle[1];		// ... daher +=360 wenn negativ
+
+			if(i == 5)
+				acutPrintf(_T("outer angles polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
+
 			
 			drawBlockedOuterAngle(angle[0],angle[1],polyPoints[i]);
 
 			//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
-			trees[i].setBlockingEdge(angle[0], angle[1], -1);
+			trees[i].setBlockingEdge(angle[0], angle[1], -2);
 		}
 		//acutPrintf(_T("________________________________"));
 	}
@@ -367,7 +372,7 @@ class CPraktikum5App : public AcRxArxApp {
 							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
 							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
 
-							if((*endAngle - *startAngle) == (*endAngle - closerAngle[0] - *startAngle)
+							if(cos(*startAngle * PI / 180) * cos(*endAngle * PI / 180) + sin(*startAngle * PI / 180) * sin(*endAngle * PI / 180) >= cos(closerAngle[0] * PI / 180))
 								angle[0] = closerAngle[0];
 							else
 								angle[0] = closerAngle[1];
@@ -382,17 +387,11 @@ class CPraktikum5App : public AcRxArxApp {
 							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
 							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
 							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
-							//int tmpCloser = closerAngle[0];
-							//if(tmpCloser < *startAngle)
-							//	tmpCloser += 360;
-							int tmpStart = *startAngle;
-							if(*startAngle < *endAngle)
-								tmpStart += 360;
 
-							if(tmpStart < closerAngle[0] && closerAngle[0] < *endAngle)
-								angle[1] = closerAngle[0];
+							if(cos(*startAngle * PI / 180) * cos(*endAngle * PI / 180) + sin(*startAngle * PI / 180) * sin(*endAngle * PI / 180) >= cos(closerAngle[0] * PI / 180))
+								angle[0] = closerAngle[0];
 							else
-								angle[1] = closerAngle[1];
+								angle[0] = closerAngle[1];
 						}
 					}
 				}*/
@@ -401,24 +400,9 @@ class CPraktikum5App : public AcRxArxApp {
 				*endAngle -= 1;
 				*startAngle > 359 ? *startAngle -= 360: *startAngle;
 				*endAngle < 0 ? *endAngle += 360: *endAngle;
-				//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[1], angle[0]);
+				if(i == 5)
+					acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, *startAngle, *endAngle);
 				trees[i].setBlockingEdge(*startAngle, *endAngle, newEdges.size());
-
-				/*
-				if(angle[0] < angle[1]){
-					angle[0] += 1;
-					angle[1] -= 1;
-					angle[0] > 359 ? angle[0] -= 360: angle[0];
-					angle[1] < 0 ? angle[1] += 360: angle[1];
-					trees[i].setBlockingEdge(angle[0], angle[1], newEdges.size());	
-				} else if (angle[0] < angle[1]){ 
-					angle[0] -= 1;
-					angle[1] += 1;
-					angle[0] < 0 ? angle[0] += 360: angle[0];
-					angle[1] > 359 ? angle[1] -= 360: angle[1];
-					trees[i].setBlockingEdge(angle[1], angle[0], newEdges.size());
-				}*/
-
 			}
 		}
 	}
@@ -608,12 +592,15 @@ class CPraktikum5App : public AcRxArxApp {
 				// gib mir den Winkel der innenkante
 				int angle = (int)((atan2(innerEdge.second.y - polyPoints[i].y,innerEdge.second.x - polyPoints[i].x)) * 180 / PI);
 				angle < 0 ? angle += 360: angle;
+				if(angle == 0) angle = 1;
 
 				/* testet am anfangspunkt ob winkel für innerEdge zulässig ist
 				 * gibt 0 zurück wenn der Winkel noch frei ist
 				 */
-				int edge = trees[i].getEdgeForAngle(angle);						
-				if(edge != 0){
+				int edge = trees[i].getEdgeForAngleFinal(angle);	
+				if(i == 5)
+					acutPrintf(_T("polyPoints[%d] angle: %d edge: %d\n"), i, angle, edge);
+				if(edge == -1 || (edge != 0 && edge != -1)){
 					return true;
 				}
 			}
@@ -659,22 +646,6 @@ class CPraktikum5App : public AcRxArxApp {
 		crossPoint.y = crossPoint.y / crossPoint.z;
 		crossPoint.z = 1;
 
-		// 
-		// intersections.push_back(AcGePoint3d(crossPoint.x, crossPoint.y, 0));
-
-		/*ads_real t;
-		if(innerEdgeEndPoint.x - innerEdgeStartPoint.x != 0)
-			t = (crossPoint.x - innerEdgeStartPoint.x) / (innerEdgeEndPoint.x - innerEdgeStartPoint.x);
-		else if(innerEdgeEndPoint.y - innerEdgeStartPoint.y != 0)
-			t = (crossPoint.y - innerEdgeStartPoint.y) / (innerEdgeEndPoint.y - innerEdgeStartPoint.y);
-		
-		// liegt Punkt auf der innerEdge && liegt der Punkt nicht im Polygon, dann gibts einen Schnitt mit einer Außenkante
-		if((t > 1 || t < 0 || CompareDoubles(t, 1.0) || CompareDoubles(t, 0.0))){		
-			return false;
-		}
-
-		*/
-
 		ads_real innerT;
         if(innerEdgeEndPoint.x - innerEdgeStartPoint.x != 0){
                 innerT = (crossPoint.x - innerEdgeStartPoint.x) / (innerEdgeEndPoint.x - innerEdgeStartPoint.x);
@@ -688,8 +659,6 @@ class CPraktikum5App : public AcRxArxApp {
 		} else if(outerEdgeEndPoint.y - outerEdgeStartPoint.y != 0){
                 outerT = (crossPoint.y - outerEdgeStartPoint.y) / (outerEdgeEndPoint.y - outerEdgeStartPoint.y);
 		}
-               
-        //if((innerT > 1 || innerT < 0 || CompareDoubles(innerT, 1.0) || CompareDoubles(innerT, 0.0)) && (outerT > 1 || outerT < 0 || CompareDoubles(outerT, 1.0) || CompareDoubles(outerT, 0.0)) ){
         
 		if((innerT > 0.0 && innerT < 1.0) && (outerT > 0.0 && outerT < 1.0)){
 			intersectionPoint = AcGePoint3d(crossPoint.x, crossPoint.y, 1);
@@ -704,15 +673,6 @@ class CPraktikum5App : public AcRxArxApp {
 		return false;
 	}
 
-	/* wird nicht benötigt
-	static bool isInPolygon(AcGeVector3d &crossPoint){
-		
-		Edge xToInf;	// Strecke von crossPoint nach rechts bis 10.000
-		AcGePoint3d inf(10.000,crossPoint.y,0);
-		return true;
-	}
-	*/
-
 	static AcGeVector3d crossProduct(AcGeVector3d &a, AcGeVector3d &b){
 		AcGeVector3d result;
 		result.x = a.y * b.z - a.z * b.y;
@@ -723,11 +683,6 @@ class CPraktikum5App : public AcRxArxApp {
 
 	static AcGeVector3d crossProduct(AcGePoint3d &a, AcGePoint3d &b){
 		return crossProduct(a.asVector(), b.asVector());
-	}
-
-	static bool CompareDoubles(double a, double b) {
-	   return std::fabs(a - b) < 0.0001;
-	   //return std::fabs(a - b) < std::numeric_limits<double>::epsilon();
 	}
 } ;
 
