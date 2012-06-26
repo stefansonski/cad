@@ -33,7 +33,6 @@
 #define PI 3.14159265358979323846
 
 using namespace std;
-using namespace Tree;
 
 //-----------------------------------------------------------------------------
 #define szRDS _RXST("CGCAD")
@@ -348,7 +347,7 @@ class CPraktikum5App : public AcRxArxApp {
 				}
 
 				// Test ob bei aktuellem Knoten eine Kante vor der appendEdge liegt, wenn ja muss der Winkel verkleinert werden
-				for(int j = 0; j < outerEdges.size(); j++){
+				/*for(int j = 0; j < outerEdges.size(); j++){
 					//angle[0] = Winkel zu IKS.first
 					//angle[1] = Winkel zu IKS.second
 					
@@ -366,14 +365,8 @@ class CPraktikum5App : public AcRxArxApp {
 							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
 							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
 							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
-							//int tmpCloser = closerAngle[0];
-							//if(tmpCloser < *startAngle)
-							//	tmpCloser += 360;
-							int tmpStart = *startAngle;
-							if(*startAngle < *endAngle)
-								tmpStart += 360;
 
-							if(tmpStart < closerAngle[0] && closerAngle[0] < *endAngle)
+							if((*endAngle - *startAngle) == (*endAngle - closerAngle[0] - *startAngle)
 								angle[0] = closerAngle[0];
 							else
 								angle[0] = closerAngle[1];
@@ -401,7 +394,7 @@ class CPraktikum5App : public AcRxArxApp {
 								angle[1] = closerAngle[1];
 						}
 					}
-				}
+				}*/
 
 				*startAngle += 1;
 				*endAngle -= 1;

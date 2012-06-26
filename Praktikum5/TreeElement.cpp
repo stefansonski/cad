@@ -1,26 +1,26 @@
 // Autor: Stefan Wiesmann nach einem Skript von Steffen Lange
 //////////////////////////////////////////////////////////////////////
+
 #include "TreeElement.h"
 #include <iostream>
 #include <iomanip>
 
 using namespace std;
-using namespace Tree;
 
 TreeElement::TreeElement()
 {
-              first = second = third = fourth= parent = last = next = 0;
-              numberChilds = whichChildIam= 0;             
-//eingefuegt WI 19062012
-              this->angle = -1;
+	first = second = third = fourth= parent = last = next = 0;
+	numberChilds = whichChildIam= 0;
+	//eingefuegt WI 19062012
+	this->angle = -1;
 }
 
 TreeElement::TreeElement(int angle, int edge)
 {
 	this->angle = angle;
 	this->edge = edge;
-	first = second = third = fourth = parent = last = next = 0;
-	numberChilds = whichChildIam = 0;
+	first = second = third = fourth= parent = last = next = 0;
+	numberChilds = whichChildIam= 0;
 }
 
 int TreeElement::getAngle()
@@ -52,18 +52,18 @@ bool TreeElement::isLeaf()
 		return false;
 }
 
-void TreeElement::browse(int tab, std::ofstream& outFile)
+void TreeElement::browse(int tab)
 {
-	outFile << setiosflags(ios::left);
-	outFile << setw(tab) << setfill(' ') << " " << setw(3) << angle  << "[" << numberChilds << "]" << endl;
+	cout << setiosflags(ios::left);
+	cout << setw(tab) << setfill(' ') << " " << setw(3) << angle  << "[" << numberChilds << "]" << endl;
 }
 
-void TreeElement::browseLeaf(int tab, std::ofstream& outFile)
+void TreeElement::browseLeaf(int tab)
 {
 	int a = 0;
 	if (next != 0)
 		a = next->getAngle();
-	outFile << setiosflags(ios::left);
-	outFile << setw(tab) << setfill(' ') << " " << setw(3) << angle << "(" << edge << ")" << "{-->" << a << "}" << endl;
+	cout << setiosflags(ios::left);
+	cout << setw(tab) << setfill(' ') << " " << setw(3) << angle << "(" << edge << ")" << "{-->" << a << "}" << endl;
 }
 
