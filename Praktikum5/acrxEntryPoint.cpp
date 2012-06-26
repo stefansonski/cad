@@ -210,7 +210,7 @@ class CPraktikum5App : public AcRxArxApp {
 			angle[0] < 0 ? angle[0] += 360: angle[0];		// atan2 liefert zahlen zwischen (-180) - (180)...
 			angle[1] < 0 ? angle[1] += 360: angle[1];		// ... daher +=360 wenn negativ
 
-			if(CURRENT_DEBUG_INDEX == 5)
+			if(i == CURRENT_DEBUG_INDEX)
 				acutPrintf(_T("outer angles polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
 
 			
@@ -402,7 +402,7 @@ class CPraktikum5App : public AcRxArxApp {
 				*endAngle -= 1;
 				*startAngle > 359 ? *startAngle -= 360: *startAngle;
 				*endAngle < 0 ? *endAngle += 360: *endAngle;
-				if(CURRENT_DEBUG_INDEX == 5)
+				if(i == CURRENT_DEBUG_INDEX)
 					acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, *startAngle, *endAngle);
 				trees[i].setBlockingEdge(*startAngle, *endAngle, newEdges.size());
 			}
@@ -600,7 +600,7 @@ class CPraktikum5App : public AcRxArxApp {
 				 * gibt 0 zurück wenn der Winkel noch frei ist
 				 */
 				int edge = trees[i].getEdgeForAngleFinal(angle);	
-				if(CURRENT_DEBUG_INDEX == 5)
+				if(i == CURRENT_DEBUG_INDEX)
 					acutPrintf(_T("polyPoints[%d] angle: %d edge: %d\n"), i, angle, edge);
 				if(edge == -1 || (edge != 0 && edge != -1)){
 					return true;
