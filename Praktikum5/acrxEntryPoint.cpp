@@ -355,7 +355,7 @@ class CPraktikum5App : public AcRxArxApp {
 				}
 
 				// Test ob bei aktuellem Knoten eine Kante vor der appendEdge liegt, wenn ja muss der Winkel verkleinert werden
-				/*for(int j = 0; j < outerEdges.size(); j++){
+				for(int j = 0; j < outerEdges.size(); j++){
 					//angle[0] = Winkel zu IKS.first
 					//angle[1] = Winkel zu IKS.second
 					
@@ -374,7 +374,7 @@ class CPraktikum5App : public AcRxArxApp {
 							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
 							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
 
-							if(cos(*startAngle * PI / 180) * cos(*endAngle * PI / 180) + sin(*startAngle * PI / 180) * sin(*endAngle * PI / 180) >= cos(closerAngle[0] * PI / 180))
+							if(sin(((double)*startAngle * PI / 180 - (double)*endAngle * PI / 180) / 2) > sin((double)closerAngle[0] * PI / 180 / 2))
 								angle[0] = closerAngle[0];
 							else
 								angle[0] = closerAngle[1];
@@ -390,13 +390,13 @@ class CPraktikum5App : public AcRxArxApp {
 							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
 							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
 
-							if(cos(*startAngle * PI / 180) * cos(*endAngle * PI / 180) + sin(*startAngle * PI / 180) * sin(*endAngle * PI / 180) >= cos(closerAngle[0] * PI / 180))
-								angle[0] = closerAngle[0];
+							if(sin(((double)*startAngle * PI / 180 - (double)*endAngle * PI / 180) / 2) > sin((double)closerAngle[0] * PI / 180 / 2))
+								angle[1] = closerAngle[0];
 							else
-								angle[0] = closerAngle[1];
+								angle[1] = closerAngle[1];
 						}
 					}
-				}*/
+				}
 
 				*startAngle += 1;
 				*endAngle -= 1;
