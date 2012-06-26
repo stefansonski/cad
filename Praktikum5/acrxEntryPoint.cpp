@@ -207,6 +207,8 @@ class CPraktikum5App : public AcRxArxApp {
 			angle[0] < 0 ? angle[0] += 360: angle[0];		// atan2 liefert zahlen zwischen (-180) - (180)...
 			angle[1] < 0 ? angle[1] += 360: angle[1];		// ... daher +=360 wenn negativ
 			
+			drawBlockedOuterAngle(angle[0],angle[1],polyPoints[i]);
+
 			//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
 			trees[i].setBlockingEdge(angle[0], angle[1], -1);
 		}
@@ -319,7 +321,6 @@ class CPraktikum5App : public AcRxArxApp {
 		for(int i = 0; i < trees.size(); i++){
 			if(edge.first != polyPoints[i] && edge.second != polyPoints[i]){
 				int angle[2];
-				bool isMajorAngle = true;
 				
 				angle[0] = (int)(atan2(edge.first.y - polyPoints[i].y, edge.first.x - polyPoints[i].x) * 180 / PI);
 				angle[1] = (int)(atan2(edge.second.y - polyPoints[i].y, edge.second.x - polyPoints[i].x) * 180 / PI);
@@ -497,6 +498,34 @@ class CPraktikum5App : public AcRxArxApp {
 			//acedGetReal(_T("Block"), &result);
 		}
 
+
+		pBlockTableRecord->close();
+	}
+
+	static void drawBlockedOuterAngle(int startAngle, int endAngle, AcGePoint3d center){
+		//database connect
+		AcDbDatabase* pDB = acdbHostApplicationServices()->workingDatabase();
+
+		//blocktable init
+		AcDbBlockTable* pBlockTable = NULL;
+		pDB->getSymbolTable(pBlockTable, AcDb::kForRead);
+
+		//blocktable record init
+		AcDbBlockTableRecord* pBlockTableRecord = NULL;
+		pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForWrite);
+
+		pBlockTable->close();
+
+		double startAngleRad = startAngle * (PI/180);
+		double endAngleRad = endAngle * (PI/180);
+
+		AcDbArc* arc;
+		arc = new AcDbArc(center, 6, startAngleRad,endAngleRad);
+		arc->setLayer(_T("crosspoints"));
+		pBlockTableRecord->appendAcDbEntity(arc);
+		arc->close();
+		// ads_real result;
+		// acedGetReal(_T("Block"), &result);
 
 		pBlockTableRecord->close();
 	}
