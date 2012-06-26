@@ -330,6 +330,23 @@ class CPraktikum5App : public AcRxArxApp {
 				double distanceToEdgeFirst = polyPoints[i].distanceTo(edge.first);
 				double distanceToEdgeSecond = polyPoints[i].distanceTo(edge.second);
 
+				int tmp = angle[1];
+				
+				if(angle[0] > angle[1]){
+					tmp += 360;
+				}
+				
+				int diff = tmp - angle[0];
+				int* startAngle;
+				int* endAngle;
+				if(diff > 180){
+					startAngle = &angle[1];
+					endAngle = &angle[0];
+				} else{
+					startAngle = &angle[0];
+					endAngle = &angle[1];
+				}
+
 				// Test ob bei aktuellem Knoten eine Kante vor der appendEdge liegt, wenn ja muss der Winkel verkleinert werden
 				for(int j = 0; j < outerEdges.size(); j++){
 					//angle[0] = Winkel zu IKS.first
@@ -344,44 +361,54 @@ class CPraktikum5App : public AcRxArxApp {
 					if(hasIntersection(Edge(polyPoints[i], edge.first), outerEdges[j])){
 						// Wenn die Distanz kleiner ist setze neuen Winkel
 						if(polyPoints[i].distanceTo(intersectionPoint) < distanceToEdgeFirst){
-							angle[0] > angle[1] ? isMajorAngle=true: isMajorAngle=false;
-							getNewAngle(outerEdges[j], polyPoints[i], angle[0], isMajorAngle);
+							int closerAngle[2];
+							closerAngle[0] = (int)(atan2(outerEdges[j].first.y - polyPoints[i].y, outerEdges[j].first.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
+							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
+							//int tmpCloser = closerAngle[0];
+							//if(tmpCloser < *startAngle)
+							//	tmpCloser += 360;
+							int tmpStart = *startAngle;
+							if(*startAngle < *endAngle)
+								tmpStart += 360;
+
+							if(tmpStart < closerAngle[0] && closerAngle[0] < *endAngle)
+								angle[0] = closerAngle[0];
+							else
+								angle[0] = closerAngle[1];
 						}	
 					}
 					
 					if(hasIntersection(Edge(polyPoints[i], edge.second), outerEdges[j])){
 						// Wenn die Distanz kleiner ist setze neuen Winkel
 						if(polyPoints[i].distanceTo(intersectionPoint) < distanceToEdgeSecond){
-							angle[1] > angle[0] ? isMajorAngle=true: isMajorAngle=false;
-							getNewAngle(outerEdges[j], polyPoints[i], angle[1], isMajorAngle);
+							int closerAngle[2];
+							closerAngle[0] = (int)(atan2(outerEdges[j].first.y - polyPoints[i].y, outerEdges[j].first.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
+							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
+							//int tmpCloser = closerAngle[0];
+							//if(tmpCloser < *startAngle)
+							//	tmpCloser += 360;
+							int tmpStart = *startAngle;
+							if(*startAngle < *endAngle)
+								tmpStart += 360;
+
+							if(tmpStart < closerAngle[0] && closerAngle[0] < *endAngle)
+								angle[1] = closerAngle[0];
+							else
+								angle[1] = closerAngle[1];
 						}
 					}
 				}
-				
 
-				int tmp = angle[1];
-				
-				if(angle[0] > angle[1]){
-					tmp += 360;
-				}
-				
-				int diff = tmp - angle[0];
-				
-				if(diff > 180){
-					angle[0] -= 1;
-					angle[1] += 1;
-					angle[0] < 0 ? angle[0] += 360: angle[0];
-					angle[1] > 359 ? angle[1] -= 360: angle[1];
-					//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[1], angle[0]);
-					trees[i].setBlockingEdge(angle[1], angle[0], newEdges.size());
-				} else{
-					angle[0] += 1;
-					angle[1] -= 1;
-					angle[0] > 359 ? angle[0] -= 360: angle[0];
-					angle[1] < 0 ? angle[1] += 360: angle[1];
-					//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[0], angle[1]);
-					trees[i].setBlockingEdge(angle[0], angle[1], newEdges.size());
-				}
+				*startAngle += 1;
+				*endAngle -= 1;
+				*startAngle > 359 ? *startAngle -= 360: *startAngle;
+				*endAngle < 0 ? *endAngle += 360: *endAngle;
+				//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, angle[1], angle[0]);
+				trees[i].setBlockingEdge(*startAngle, *endAngle, newEdges.size());
 
 				/*
 				if(angle[0] < angle[1]){
@@ -400,27 +427,6 @@ class CPraktikum5App : public AcRxArxApp {
 
 			}
 		}
-	}
-
-	static void getNewAngle(Edge& outerEdge, AcGePoint3d& polyPoint,int& angle, bool isMajorAngle){
-				
-		int closerAngle[2];
-		closerAngle[0] = (int)(atan2(outerEdge.first.y - polyPoint.y, outerEdge.first.x - polyPoint.x) * 180 / PI);
-		closerAngle[1] = (int)(atan2(outerEdge.second.y - polyPoint.y, outerEdge.second.x - polyPoint.x) * 180 / PI);
-		closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
-		closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
-		
-		int minorAngle = (closerAngle[0]<closerAngle[1]?closerAngle[0]:closerAngle[1]);
-		int majorAngle = (closerAngle[0]<closerAngle[1]?closerAngle[1]:closerAngle[0]);
-
-		if(isMajorAngle){
-			angle = minorAngle;
-			// Wenn sich der Winkel zwischen angle[0]-angle[1] befindet reduziere ihn
-		} else {
-			angle = majorAngle;
-		}
-		
-		return;
 	}
 
 	static void drawPolygons(std::vector<Edge> &innerEdges, std::vector<Edge> &outerEdges){
