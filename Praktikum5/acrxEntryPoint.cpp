@@ -166,10 +166,6 @@ class CPraktikum5App : public AcRxArxApp {
 				if(!exists){
 					polyPoints.push_back(pt);					// und steck ihn in polyPoints
 				}
-				//	TwoThreeTree tree;							
-				//	tree.insertAngle(360,0);					// Tree init für jeden Punkt
-				//	trees.push_back(tree);						// leg für jeden Punkt Tree mit 0°-360° an
-				//}
 			}
 
 			polyline->close();
@@ -300,8 +296,7 @@ class CPraktikum5App : public AcRxArxApp {
 	}
 
 	// ab hier wirds spannend
-	static void createPolygons()
-	{
+	static void createPolygons(){
 		std::vector<Edge> newEdges;
 
 		// angefangen bei der kleinsten innerEdge wird nun geprüft ob das setzen erlaubt ist
@@ -358,53 +353,99 @@ class CPraktikum5App : public AcRxArxApp {
 				for(int j = 0; j < outerEdges.size(); j++){
 					//angle[0] = Winkel zu IKS.first
 					//angle[1] = Winkel zu IKS.second
+
+					int first = (int)outerEdges[j].first.distanceTo(polyPoints[i]);
+					int second = (int)outerEdges[j].second.distanceTo(polyPoints[i]);
 					
-					// wenn aktuellerKnoten-edge.first und aktuellerKnoten-edge.second die Außenkante schneidet angle[0] = angle[1] = 0
-					if(hasIntersection(Edge(polyPoints[i], edge.first), outerEdges[j]) && hasIntersection(Edge(polyPoints[i], edge.second), outerEdges[j])){
-						angle[0] = angle[1] = 0;
-						break;
-					}
-
-					if(hasIntersection(Edge(polyPoints[i], edge.first), outerEdges[j])){
-						// Wenn die Distanz kleiner ist setze neuen Winkel
-						if(polyPoints[i].distanceTo(intersectionPoint) < distanceToEdgeFirst){
-							int closerAngle[2];
-							closerAngle[0] = (int)(atan2(outerEdges[j].first.y - polyPoints[i].y, outerEdges[j].first.x - polyPoints[i].x) * 180 / PI);
-							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
-							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
-							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
-
-							if(sin(((double)*startAngle * PI / 180 - (double)*endAngle * PI / 180) / 2) > sin((double)closerAngle[0] * PI / 180 / 2))
-								angle[0] = closerAngle[0];
-							else
-								angle[0] = closerAngle[1];
-						}	
-					}
-					
-					if(hasIntersection(Edge(polyPoints[i], edge.second), outerEdges[j])){
-						// Wenn die Distanz kleiner ist setze neuen Winkel
-						if(polyPoints[i].distanceTo(intersectionPoint) < distanceToEdgeSecond){
-							int closerAngle[2];
-							closerAngle[0] = (int)(atan2(outerEdges[j].first.y - polyPoints[i].y, outerEdges[j].first.x - polyPoints[i].x) * 180 / PI);
-							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
-							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
-							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
-
-							if(sin(((double)*startAngle * PI / 180 - (double)*endAngle * PI / 180) / 2) > sin((double)closerAngle[0] * PI / 180 / 2))
-								angle[1] = closerAngle[0];
-							else
-								angle[1] = closerAngle[1];
+					if(!(first == 0 || second == 0)){
+						// wenn aktuellerKnoten-edge.first und aktuellerKnoten-edge.second die Außenkante schneidet angle[0] = angle[1] = 0
+						if((hasIntersection(Edge(polyPoints[i], edge.first), outerEdges[j]) && hasIntersection(Edge(polyPoints[i], edge.second), outerEdges[j])) || (intersectionPoint == edge.first && hasIntersection(Edge(polyPoints[i], edge.second), outerEdges[j])) || (intersectionPoint == edge.second && hasIntersection(Edge(polyPoints[i], edge.first), outerEdges[j]))){
+							angle[0] = angle[1] = 0;
+							break;
 						}
 					}
-				}
 
-				*startAngle += 1;
-				*endAngle -= 1;
-				*startAngle > 359 ? *startAngle -= 360: *startAngle;
-				*endAngle < 0 ? *endAngle += 360: *endAngle;
-				if(i == CURRENT_DEBUG_INDEX)
-					acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, *startAngle, *endAngle);
-				trees[i].setBlockingEdge(*startAngle, *endAngle, newEdges.size());
+					if(polyPoints[i] != outerEdges[j].first && polyPoints[i] != outerEdges[j].second && hasIntersection(Edge(polyPoints[i], edge.first), outerEdges[j])){
+						// Wenn die Distanz kleiner ist setze neuen Winkel bei angle[0]
+						if((int)polyPoints[i].distanceTo(intersectionPoint) < (int)distanceToEdgeFirst){
+							int closerAngle[2];
+							closerAngle[0] = (int)(atan2(outerEdges[j].first.y - polyPoints[i].y, outerEdges[j].first.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
+							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
+
+							if(*startAngle < *endAngle){
+								if((closerAngle[0] > *startAngle) && (closerAngle[0] < *endAngle)){
+									acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d wurde geändert in angle[0]=%d und angle[1]=%d \n"), i, *startAngle, *endAngle, closerAngle[0], angle[1]);
+									angle[0] = closerAngle[0];
+								} else{
+									acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d wurde geändert in angle[0]=%d und angle[1]=%d \n"), i, *startAngle, *endAngle, closerAngle[1], angle[1]);
+									angle[0] = closerAngle[1];
+								}
+							}
+
+
+							if(*startAngle > *endAngle){
+								if(((closerAngle[0] > *startAngle) && (closerAngle[0] <= 360)) && ((closerAngle[0] >= 0) && (closerAngle[0] < *endAngle))){
+									acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d wurde geändert in angle[0]=%d und angle[1]=%d \n"), i, *startAngle, *endAngle, closerAngle[0], angle[1]);
+									angle[0] = closerAngle[0];
+								} else{
+									acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d wurde geändert in angle[0]=%d und angle[1]=%d \n"), i, *startAngle, *endAngle, closerAngle[1], angle[1]);
+									angle[0] = closerAngle[1];
+								}
+							}
+							
+						}	
+					}
+
+					if(polyPoints[i] != outerEdges[j].first && polyPoints[i] != outerEdges[j].second && hasIntersection(Edge(polyPoints[i], edge.second), outerEdges[j])){
+						// Wenn die Distanz kleiner ist setze neuen Winkel bei angle[0]
+						if((int)polyPoints[i].distanceTo(intersectionPoint) < (int)distanceToEdgeSecond){
+							int closerAngle[2];
+							closerAngle[0] = (int)(atan2(outerEdges[j].first.y - polyPoints[i].y, outerEdges[j].first.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[1] = (int)(atan2(outerEdges[j].second.y - polyPoints[i].y, outerEdges[j].second.x - polyPoints[i].x) * 180 / PI);
+							closerAngle[0] < 0 ? closerAngle[0] += 360: closerAngle[0];
+							closerAngle[1] < 0 ? closerAngle[1] += 360: closerAngle[1];
+
+							if(*startAngle < *endAngle){
+								if((closerAngle[0] > *startAngle) && (closerAngle[0] < *endAngle)){
+									acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d wurde geändert in angle[0]=%d und angle[1]=%d \n"), i, *startAngle, *endAngle, angle[0], closerAngle[0]);
+									angle[1] = closerAngle[0];
+								} else{
+									acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d wurde geändert in angle[0]=%d und angle[1]=%d \n"), i, *startAngle, *endAngle, angle[0], closerAngle[1]);
+									angle[1] = closerAngle[1];
+								}
+							}
+
+
+							if(*startAngle > *endAngle){
+								if(((closerAngle[0] > *startAngle) && (closerAngle[0] <= 360)) && ((closerAngle[0] >= 0) && (closerAngle[0] < *endAngle))){
+									
+									acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d wurde geändert in angle[0]=%d und angle[1]=%d \n"), i, *startAngle, *endAngle, angle[0], closerAngle[0]);
+									angle[1] = closerAngle[0];
+								} else{
+									acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d wurde geändert in angle[0]=%d und angle[1]=%d \n"), i, *startAngle, *endAngle, angle[0], closerAngle[1]);
+									angle[1] = closerAngle[1];
+									
+								}
+							}
+							
+						}	
+					}
+				}
+				tmp = *endAngle;
+				if(*endAngle < *startAngle)
+					tmp += 360;
+				diff = tmp - *startAngle;
+				if((!(*startAngle == 0 && *endAngle == 0)) && diff > 2) { 
+					*startAngle += 1;
+					*endAngle -= 1;
+					*startAngle > 359 ? *startAngle -= 360: *startAngle;
+					*endAngle < 0 ? *endAngle += 360: *endAngle;
+					//if(i == CURRENT_DEBUG_INDEX)
+						//acutPrintf(_T("polyPoints[%d]: startangle: %d endangle: %d\n"), i, *startAngle, *endAngle);
+					trees[i].setBlockingEdge(*startAngle, *endAngle, newEdges.size());
+				}
 			}
 		}
 	}
@@ -662,8 +703,8 @@ class CPraktikum5App : public AcRxArxApp {
                 outerT = (crossPoint.y - outerEdgeStartPoint.y) / (outerEdgeEndPoint.y - outerEdgeStartPoint.y);
 		}
         
+		intersectionPoint = AcGePoint3d(crossPoint.x, crossPoint.y, 0);
 		if((innerT > 0.0 && innerT < 1.0) && (outerT > 0.0 && outerT < 1.0)){
-			intersectionPoint = AcGePoint3d(crossPoint.x, crossPoint.y, 1);
 			return true;
 		}
 		//acutPrintf(_T(" t = %f\n"), t);
