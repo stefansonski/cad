@@ -465,25 +465,41 @@ class CPraktikum5App : public AcRxArxApp {
 
 		pBlockTable->close();
 
-		/*				for(int i = 0; i < polyPoints.size(); i++)
+		int size = innerEdges.size();
+		for(int i = 0; i < size; i++)
 		{
-		AcDbFace* face;
-		for(int j = 0; j < newEdges.size(); j++)
-		{
-		if(polyPoints[i] == newEdges[j].first)
-		{
-		face = new AcDbFace(newEdges[j].first, newEdges[j].second, polyPoints[i == 0 ? (polyPoints.size() - 1) : i - 1], TRUE, TRUE, TRUE);
-		face->setLayer(_T("TRIANG"));
-		pBlockTableRecord->appendAcDbEntity(face);
-		face->close();
+			innerEdges.push_back(Edge(innerEdges[i].second, innerEdges[i].first));
 		}
+
+		outerEdges[1] = Edge(outerEdges[1].second, outerEdges[1].first);
+
+		innerEdges.insert(innerEdges.begin(), outerEdges.begin(), outerEdges.end());
+
+		vector<bool> set;
+
+		for(int i = 0; i < innerEdges.size(); i++) {
+			set.push_back(false);
 		}
+
+		for(int i = 0; i < innerEdges.size(); i++) {
+			for(int j = 0; j < innerEdges.size(); j++) {
+				if(i != j) {
+					for(int k = 0; k < innerEdges.size(); k++) {
+						if(j != k && !set[i] && !set[j] && !set[k] && innerEdges[i].second == innerEdges[j].first && innerEdges[j].second == innerEdges[k].first && innerEdges[k].second == innerEdges[i].first) {
+							AcDbFace* face = new AcDbFace(AcGePoint3d(innerEdges[i].first), AcGePoint3d(innerEdges[i].second), AcGePoint3d(innerEdges[j].second), TRUE, TRUE, TRUE);
+							face->setLayer(_T("trianguliert"));
+							pBlockTableRecord->appendAcDbEntity(face);
+							set[i] = true;
+							set[j] = true;
+							set[k] = true;
+							face->close();
+						}
+					}
+				}
+			}
 		}
-		*/
 
 		/*
-		 * TODO: statt lines faces verwenden!
-		 */
 		AcDbLine* line;
 		for(int j = 0; j < innerEdges.size(); j++)
 		{
@@ -493,7 +509,7 @@ class CPraktikum5App : public AcRxArxApp {
 			line->close();
 			ads_real result;
 			//acedGetReal(_T("Block"), &result);
-		}
+		}*/
 
 
 		pBlockTableRecord->close();
